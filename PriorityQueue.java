@@ -1,0 +1,4 @@
+class PriorityQueue implements Queue {
+	
+	
+}
