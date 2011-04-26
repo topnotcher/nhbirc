@@ -11,7 +11,7 @@ class IrcDriver {
 
 			System.out.println("Connected");
 
-			while(true) try { Thread.sleep(500); } catch (Exception e) { }
+//			while(true) try { Thread.sleep(500); } catch (Exception e) { }
 
 		} catch (Exception e) {
 			System.out.println(e);

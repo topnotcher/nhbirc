@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+import java.nio.CharBuffer;
 
 public class Irc {
 	
@@ -81,6 +82,9 @@ public class Irc {
 		System.out.println("Peek returns: "+sendQ.peek());
 	}
 
+	private void handle(String msg) {
+		System.out.println("RECV: " + msg);
+	}
 	public void send(String cmd) {
 
 	}
@@ -141,10 +145,14 @@ public class Irc {
 
 		ByteBuffer buf;
 
+		CharBuffer msg;
+
 		private IrcConnection() throws java.io.IOException {
 			conn  = SocketChannel.open();
 
 			conn.connect(new InetSocketAddress(host,port));	
+
+			conn.finishConnect();
 
 			//socket is connected, set to non-blocking.
 			conn.configureBlocking(false);
@@ -154,7 +162,11 @@ public class Irc {
 
 			selector = Selector.open();
 
-			conn.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE );
+			conn.register( selector, /*SelectionKey.OP_READ | SelectionKey.OP_WRITE */ conn.validOps());
+
+			//allocate charbufffer
+
+			msg = CharBuffer.allocate(512);
 
 			connected = true;
 		}
@@ -169,7 +181,6 @@ public class Irc {
 
 			buf = ByteBuffer.allocate(512);
 
-			String msg;
 			while(connected) {
 
 				try {	
@@ -177,13 +188,13 @@ public class Irc {
 				
 					selector.select();
 					
-					System.out.println("Select returned");
+//					System.out.println("Select returned");
 
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
 					while ( keys.hasNext() ) {
 
-						System.out.println("Iter keys");
+//						System.out.println("Iter keys");
 						SelectionKey key = keys.next();
 						SocketChannel keyChannel = (SocketChannel)key.channel();
 
@@ -192,10 +203,8 @@ public class Irc {
 						if ( key.isWritable() ) while ( sendQ.peek() != null )
 							send( keyChannel, sendQ.poll() );
 
-						else if ( key.isReadable() ) 
-							System.out.println("READABLE");
-//							read
-
+						if ( key.isReadable() ) 
+							recv( keyChannel );
 					}
 
 					try {
@@ -228,18 +237,40 @@ public class Irc {
 			}
 
 
-//			try {
-//				conn.configureBlocking(true);
-//			} catch (java.io.IOException e) {
-//				System.out.println(e);
-//			}
-//			
-//			out.println( msg );
 		}
 
-		private void recv(String msg) {
-			System.out.println("RECV :" +msg);
-			recvQ.offer( msg );
+		private void recv(SocketChannel channel) {
+
+			char tmp;
+
+			//@TODO fix all of this.
+			ByteBuffer in = ByteBuffer.allocate(1024);
+
+			java.nio.charset.Charset charset = java.nio.charset.Charset.forName("ISO-8859-1");
+			java.nio.charset.CharsetDecoder decoder = charset.newDecoder();
+			java.nio.CharBuffer cBuf;
+			in.clear();
+
+			try {
+				channel.read(in);
+				in.flip();
+				cBuf = decoder.decode(in);
+
+				while ( cBuf.remaining() >= 2 && ( tmp = cBuf.get() ) != '\0' ) {
+					
+					if (tmp == '\r' || tmp == '\n') {
+						handle(msg.toString());
+						msg.clear();
+					}
+					else {
+						msg.put(tmp);
+					}
+				}
+
+			} catch (java.io.IOException e) {
+				System.out.println(e);	
+			}
+
 		}
 
 		public void close() {
