@@ -27,7 +27,7 @@ public class Irc {
 
 	private Queue<String> sendQ;
 	
-	private Queue<String> recvQ;
+	private Queue<IrcMessage> recvQ;
 
 
 	private IrcConnection conn;
@@ -53,7 +53,7 @@ public class Irc {
 	public void connect() throws java.io.IOException {
 
 		sendQ = new ConcurrentLinkedQueue<String>();
-		recvQ = new ConcurrentLinkedQueue<String>();
+		recvQ = new ConcurrentLinkedQueue<IrcMessage>();
 	
 		System.out.println("Creating a new IRC connection...");
 
@@ -65,28 +65,33 @@ public class Irc {
 		//Cause the connection to enter the main loop.
 		(new Thread( conn )).start();
 
+		(new Thread( new MessageHandler() )).start();
+
 		System.out.println("Run returned...");
 
 		register();
 	}
  
 	private void register() {
-		System.out.println("Starting registration");
 		sendRaw("NICK " +nick);
 		sendRaw("USER " + user + " 0 * : " + real);
-		System.out.println("Commands Queued");
-
-		for ( String foo : sendQ.toArray( new String[sendQ.size()] ) )
-			System.out.println("Queued: " +foo);
-
-		System.out.println("Peek returns: "+sendQ.peek());
 	}
 
-	private void handle(String msg) {
-		System.out.println("RECV: " + msg);
+	private void handleRaw(String raw) {
+
+		if (raw.length() == 0) return;
+
+		IrcMessage msg = new IrcMessage(raw);
+
+		if ( msg.getCommand().equals("PING") )
+			sendRaw("PONG :" + msg.getMessage());
+		else
+			recvQ.offer(msg);
 	}
+
 	public void send(String cmd) {
-
+		//@TODO
+		sendRaw(cmd);
 	}
 
 	private void sendRaw(String cmd) {
@@ -126,47 +131,47 @@ public class Irc {
 
 		public void run() {
 			while(true) {
-
-
+				
+				while ( recvQ.peek() != null ) 
+					System.out.println("HANDLE: " + recvQ.poll() );
+					
+				try {
+					Thread.sleep(50);
+				} catch (InterruptedException e) {	
+					//done.
+				}
 			}
 		}
 	}
 
 	private class IrcConnection implements Runnable {
+	
+		//BLEH
+		private static final int MSG_SIZE = 512;
+
 		private SocketChannel conn = null;
-
-		private BufferedReader in;
-
-//		private PrintWriter out;
 
 		private boolean connected = false;
 
 		Selector selector;
 
-		ByteBuffer buf;
-
 		CharBuffer msg;
+
+		ByteBuffer out;
 
 		private IrcConnection() throws java.io.IOException {
 			conn  = SocketChannel.open();
 
 			conn.connect(new InetSocketAddress(host,port));	
 
-			conn.finishConnect();
-
 			//socket is connected, set to non-blocking.
 			conn.configureBlocking(false);
 		
-	//		in = new BufferedReader( new InputStreamReader(conn.socket().getInputStream()) );
-	//		out = new PrintWriter( conn.socket().getOutputStream(), true );
-
 			selector = Selector.open();
 
-			conn.register( selector, /*SelectionKey.OP_READ | SelectionKey.OP_WRITE */ conn.validOps());
+			conn.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
-			//allocate charbufffer
-
-			msg = CharBuffer.allocate(512);
+			msg = CharBuffer.allocate(MSG_SIZE);
 
 			connected = true;
 		}
@@ -179,22 +184,17 @@ public class Irc {
 			if (connected == false) 
 				throw new RuntimeException("Trying to loop over non connection???");
 
-			buf = ByteBuffer.allocate(512);
-
 			while(connected) {
 
 				try {	
 
-				
+					//block until a socket is selected...
 					selector.select();
 					
-//					System.out.println("Select returned");
-
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
 					while ( keys.hasNext() ) {
 
-//						System.out.println("Iter keys");
 						SelectionKey key = keys.next();
 						SocketChannel keyChannel = (SocketChannel)key.channel();
 
@@ -215,7 +215,7 @@ public class Irc {
 			
 				} catch (Exception e) {
 					//@TODO
-					System.out.println(e);
+					e.printStackTrace();
 				}
 			}
 		}
@@ -223,56 +223,71 @@ public class Irc {
 		private void send(SocketChannel channel, String msg) {
 			System.out.println("SEND :" + msg);
 
-			msg = msg+"\n";
+			msg += "\n";
+			
+			//@TODO
+			if (msg.length() > MSG_SIZE)
+				throw new RuntimeException("Command too large...");
 
-			buf.clear();
-			buf.put(msg.getBytes());
-			buf.flip();
+			ByteBuffer out = ByteBuffer.allocate(MSG_SIZE);
+			out.put(msg.getBytes());
+			out.flip();
 
-			try {
-				while (buf.hasRemaining())
-					channel.write(buf);
+			try { //@TODO
+				while (out.hasRemaining())
+					channel.write(out);
 			} catch (java.io.IOException e) {
-				System.out.println(e);
+				e.printStackTrace();
 			}
 
 
 		}
 
+		/**
+		 * Receives/buffers any data on the channel
+		 */
 		private void recv(SocketChannel channel) {
 
 			char tmp;
 
 			//@TODO fix all of this.
-			ByteBuffer in = ByteBuffer.allocate(1024);
+			ByteBuffer in = ByteBuffer.allocate(MSG_SIZE);
 
 			java.nio.charset.Charset charset = java.nio.charset.Charset.forName("ISO-8859-1");
 			java.nio.charset.CharsetDecoder decoder = charset.newDecoder();
 			java.nio.CharBuffer cBuf;
-			in.clear();
 
 			try {
 				channel.read(in);
 				in.flip();
+				
+				//create a character buffer from the bytes read.
 				cBuf = decoder.decode(in);
 
-				while ( cBuf.remaining() >= 2 && ( tmp = cBuf.get() ) != '\0' ) {
+				//for each character in the buffer
+				while ( cBuf.remaining() > 0 &&  ( tmp = cBuf.get() ) != '\0' ) {
 					
+					//if it is a 'newline' (RFC says either of these suffices), end the command.
 					if (tmp == '\r' || tmp == '\n') {
-						handle(msg.toString());
+
+						int pos = msg.position();
 						msg.clear();
+
+						//because clearing the buffer just resets the position, so if we 
+						//don't take the correct subseq, old data from the last command will be passed.
+						handleRaw( msg.subSequence(0,pos).toString() );
 					}
 					else {
+						///otherwise, put teh character on the buffer.
 						msg.put(tmp);
 					}
 				}
 
 			} catch (java.io.IOException e) {
-				System.out.println(e);	
+				e.printStackTrace();
 			}
 
 		}
-
 		public void close() {
 			
 			//stop the thread from looping.
@@ -283,7 +298,7 @@ public class Irc {
 				conn.socket().close();
 			} catch (Exception e) {
 				//@TODO
-				System.out.println(e);
+				e.printStackTrace();
 			}
 		}
 
