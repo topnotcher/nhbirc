@@ -20,9 +20,11 @@ public class IrcMessage {
  *
  */
 
+	/**
+	 * @TODO this is all messed up.
+	 */
 	public IrcMessage(String msg) {
 
-		System.out.println("PARSE " + msg);
 		int pos = msg.indexOf(':');
 		int start = 0;
 
@@ -30,15 +32,20 @@ public class IrcMessage {
 			pos = msg.indexOf(':',1);
 
 		//@TODO
-		if ( pos == -1 ) 
-			throw new RuntimeException("Invalid message: " + msg);
+		if ( pos == -1 ) {
+			this.msg = msg;
+			return;
+		}
 
-		String hdr = msg.substring(0, pos - 1 );
+		String hdr = msg.substring(0, pos );
+		//fix this..
+		command = hdr.trim();
+
 		this.msg = msg.substring(pos + 1);
 		
 		StringTokenizer toks = new StringTokenizer(hdr," ");
 
-		for (int i = 0; toks.hasMoreTokens(); ++i) {
+		for (int i = 0; toks.hasMoreTokens() && i < 3; ++i) {
 
 			if (i == 0) 
 				source = toks.nextToken();

@@ -2,7 +2,7 @@ class IrcDriver {
 	public static void main(String argv[]) {
 		System.out.println("Starting...");
 
-		Irc irc = new Irc("irc.jaundies.com", 6667, "mario");
+		Irc irc = new Irc("irc.jaundies.com", 6667, "fubar");
 
 		System.out.println("Created new Irc object...");
 

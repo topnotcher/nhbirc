@@ -29,7 +29,7 @@ class LinkedList<T> extends AbstractSequentialList<T> {
 	/**
 	 * Default constructor - initialize an empty list.
 	 */
-	public List() {
+	public LinkedList() {
 		
 	}
 	

@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.nio.CharBuffer;
+import java.util.List;
 
 public class Irc {
 	
@@ -29,9 +30,12 @@ public class Irc {
 	
 	private Queue<IrcMessage> recvQ;
 
-
 	private IrcConnection conn;
+
+	private List<IrcMessageHandler> handlers = new LinkedList<IrcMessageHandler>();
 	
+	private boolean registered = false;
+
 	public Irc(String host, int port, String nick) {
 		this(host,port,nick,nick);
 	}
@@ -52,6 +56,7 @@ public class Irc {
 	//attempt to connect
 	public void connect() throws java.io.IOException {
 
+		//will replace these with own implementation of queue/prioirty queue later.
 		sendQ = new ConcurrentLinkedQueue<String>();
 		recvQ = new ConcurrentLinkedQueue<IrcMessage>();
 	
@@ -63,35 +68,59 @@ public class Irc {
 
 		
 		//Cause the connection to enter the main loop.
-		(new Thread( conn )).start();
+		(new Thread( conn, "Connection" )).start();
 
-		(new Thread( new MessageHandler() )).start();
+		(new Thread( new MessageHandler(), "Message Handler" )).start();
 
 		System.out.println("Run returned...");
 
 		register();
+
+		addMessageHandler("001", this.internalHandler);
+		//@TODO block while registering...
+		//@TODO timeout...
+		while (!registered) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+			
+			}
+		}
 	}
- 
+
+	public void addMessageHandler(String cmd, IrcMessageHandler handler) {
+		String[] cmds = {cmd};
+		addMessageHandler(cmds, handler);
+	}
+
+	public void addMessageHandler(String[] cmds, IrcMessageHandler handler) {
+		handlers.add( new IrcMessageSubscription(cmds,handler) );
+	}
+
 	private void register() {
 		sendRaw("NICK " +nick);
 		sendRaw("USER " + user + " 0 * : " + real);
 	}
 
-	private void handleRaw(String raw) {
 
+	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 
 		IrcMessage msg = new IrcMessage(raw);
 
-		if ( msg.getCommand().equals("PING") )
-			sendRaw("PONG :" + msg.getMessage());
+		if ( msg.getCommand().equals("PING") ) {
+			System.out.println("PING");
+			send("PONG", msg.getCommand());
+		}
 		else
 			recvQ.offer(msg);
+
+		System.out.println("RECV " + raw);
 	}
 
-	public void send(String cmd) {
+	public void send(String cmd, String msg) {
 		//@TODO
-		sendRaw(cmd);
+		sendRaw(cmd + " :" + msg);
 	}
 
 	private void sendRaw(String cmd) {
@@ -99,6 +128,8 @@ public class Irc {
 		//offer returns bool.
 		if (!sendQ.offer(cmd))
 			throw new RuntimeException("Failed to queue message: " + cmd);
+
+		System.out.println("QUEUE: " + cmd);
 	}
 
 	/**
@@ -118,10 +149,36 @@ public class Irc {
 	}
 
 	public void quit(String msg) {
-		sendRaw("QUIT :"+msg);
+		send("QUIT", msg);
 		conn.close();
 		conn = null;
 	}
+
+	private class IrcMessageSubscription implements IrcMessageHandler {
+		private String[] cmds;
+		
+		private IrcMessageHandler handler;
+			
+		public IrcMessageSubscription(String[] cmds, IrcMessageHandler handler) {
+			this.cmds = cmds;
+			this.handler = handler;
+		}
+
+		public void handle(IrcMessage msg) {
+			for ( String cmd : cmds ) 
+				if (cmd.equals(msg.getCommand())) 
+					handler.handle(msg);
+				
+		}
+	}
+		
+	private IrcMessageHandler internalHandler = new IrcMessageHandler() {
+
+		public void handle(IrcMessage msg) {
+			if ( msg.getCommand().equals("001"))
+				registered = true;
+		}
+	};
 
 	private class MessageHandler implements Runnable {
 
@@ -130,13 +187,21 @@ public class Irc {
 		}
 
 		public void run() {
+
 			while(true) {
 				
-				while ( recvQ.peek() != null ) 
-					System.out.println("HANDLE: " + recvQ.poll() );
-					
+				while ( recvQ.peek() != null ) { 
+
+					Iterator<IrcMessageHandler> it = handlers.iterator();
+						
+					while (it.hasNext()) 
+						it.next().handle( recvQ.peek() );
+
+					recvQ.poll();
+				}
+						
 				try {
-					Thread.sleep(50);
+					Thread.sleep(150);
 				} catch (InterruptedException e) {	
 					//done.
 				}
@@ -145,17 +210,17 @@ public class Irc {
 	}
 
 	private class IrcConnection implements Runnable {
-	
-		//BLEH
+		
+			//BLEH
 		private static final int MSG_SIZE = 512;
 
 		private SocketChannel conn = null;
 
 		private boolean connected = false;
 
-		Selector selector;
+		private Selector selector;
 
-		CharBuffer msg;
+		private CharBuffer msg;
 
 		ByteBuffer out;
 
@@ -166,7 +231,7 @@ public class Irc {
 
 			//socket is connected, set to non-blocking.
 			conn.configureBlocking(false);
-		
+			
 			selector = Selector.open();
 
 			conn.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
@@ -185,30 +250,40 @@ public class Irc {
 				throw new RuntimeException("Trying to loop over non connection???");
 
 			while(connected) {
-
+			
 				try {	
 
 					//block until a socket is selected...
+					System.out.println("select()");
 					selector.select();
 					
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
 					while ( keys.hasNext() ) {
 
+						System.out.println("keys..");
 						SelectionKey key = keys.next();
 						SocketChannel keyChannel = (SocketChannel)key.channel();
 
 						keys.remove();
 
-						if ( key.isWritable() ) while ( sendQ.peek() != null )
-							send( keyChannel, sendQ.poll() );
+						if (sendQ.peek() != null)
+							System.out.println("There are commands to send");
+
+			
+						if ( key.isWritable() ) 
+							while ( sendQ.peek() != null )
+								send( keyChannel, sendQ.poll() );
+						else
+							System.out.println("Not writeable");
+
 
 						if ( key.isReadable() ) 
 							recv( keyChannel );
 					}
 
 					try {
-						Thread.sleep(50);
+						Thread.sleep(150);
 					} catch (InterruptedException e) {
 						//not really relevant.
 					}
@@ -217,7 +292,10 @@ public class Irc {
 					//@TODO
 					e.printStackTrace();
 				}
+
 			}
+
+			System.out.println("STopped Running");
 		}
 
 		private void send(SocketChannel channel, String msg) {
