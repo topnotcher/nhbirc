@@ -1,3 +1,5 @@
+package irc;
+
 import java.nio.channels.SocketChannel;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
@@ -12,7 +14,7 @@ import java.util.Iterator;
 import java.nio.CharBuffer;
 import java.util.List;
 
-public class Irc {
+public class Connection {
 	
 	/**
 	 * Server for the IRC connection
@@ -31,13 +33,13 @@ public class Irc {
 	private Queue<String> sendQ;
 	
 	//queue of messages received.
-	private Queue<IrcMessage> recvQ;
+	private Queue<Message> recvQ;
 
 	//Irc connection
 	private IrcConnection conn;
 
 	//message handlers (subscribers)
-	private List<IrcMessageHandler> handlers = new LinkedList<IrcMessageHandler>();
+	private List<MessageHandler> handlers = new util.LinkedList<MessageHandler>();
 	
 	//whether or not registration phase of connection is complete
 	//(no non-registration commands can be sent until this is done)
@@ -46,15 +48,15 @@ public class Irc {
 	//how the server identifies itself in the 001
 	private String hostname = "none";
 
-	public Irc(String host, int port, String nick) {
+	public Connection(String host, int port, String nick) {
 		this(host,port,nick,nick);
 	}
 
-	public Irc(String host, int port, String nick, String user) {
+	public Connection(String host, int port, String nick, String user) {
 		this(host,port,nick,user,nick);
 	}
 
-	public Irc(String host, int port, String nick, String user, String real) {
+	public Connection(String host, int port, String nick, String user, String real) {
 		this.user = user;
 		this.host = host;
 		this.port = port;
@@ -86,7 +88,7 @@ public class Irc {
 		//some potentially long, synchonous operation to handle. In this case,
 		//a PING could be left unread which would cause a pint timeout.
 		//)
-		(new Thread( new MessageHandler(), "Message Handler" )).start();
+		(new Thread( new IrcMessageHandler(), "Message Handler" )).start();
 
 		//initiatite registration
 		register();
@@ -108,13 +110,13 @@ public class Irc {
 	}
 
 	//handle a single command
-	public void addMessageHandler(String cmd, IrcMessageHandler handler) {
+	public void addMessageHandler(String cmd, MessageHandler handler) {
 		String[] cmds = {cmd};
 		addMessageHandler(cmds, handler);
 	}
 	
 	//handle an array of commands
-	public void addMessageHandler(String[] cmds, IrcMessageHandler handler) {
+	public void addMessageHandler(String[] cmds, MessageHandler handler) {
 		handlers.add( new IrcMessageSubscription(cmds,handler) );
 	}
 
@@ -186,7 +188,7 @@ public class Irc {
 	}
 
 	//a subscription to irc messages
-	private class IrcMessageSubscription implements IrcMessageHandler {
+	private class IrcMessageSubscription implements MessageHandler {
 		private String[] cmds;
 		
 		private IrcMessageHandler handler;
@@ -197,7 +199,7 @@ public class Irc {
 		}
 
 		//tests if this subscription matches, calls the handlers handle if it does.
-		public void handle(IrcMessage msg) {
+		public void handle(Message msg) {
 			for ( String cmd : cmds ) 
 				if (cmd.equals(msg.getCommand())) 
 					handler.handle(msg);
@@ -208,7 +210,7 @@ public class Irc {
 	//handler for some internal stuff.
 	private IrcMessageHandler internalHandler = new IrcMessageHandler() {
 
-		public void handle(IrcMessage msg) {
+		public void handle(Message msg) {
 			if ( msg.getCommand().equals("001")) {
 				registered = true;
 				hostname = msg.getSource();
@@ -217,9 +219,9 @@ public class Irc {
 	};
 
 	//message handler thread
-	private class MessageHandler implements Runnable {
+	private class IrcMessageHandler implements Runnable {
 
-		public MessageHandler() {
+		private IrcMessageHandler() {
 	
 		}
 
@@ -229,7 +231,7 @@ public class Irc {
 				
 				while ( recvQ.peek() != null ) { 
 
-					Iterator<IrcMessageHandler> it = handlers.iterator();
+					Iterator<MessageHandler> it = handlers.iterator();
 						
 					while (it.hasNext()) 
 						it.next().handle( recvQ.peek() );

@@ -1,8 +1,8 @@
-class IrcDriver {
+class Driver {
 	public static void main(String argv[]) {
 		System.out.println("Starting...");
 
-		Irc irc = new Irc("irc.jaundies.com", 6667, "fubar");
+		Connection irc = new Irc("irc.jaundies.com", 6667, "fubar");
 
 		System.out.println("Created new Irc object...");
 

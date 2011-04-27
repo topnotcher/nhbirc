@@ -1,7 +1,9 @@
+package irc;
+
 import java.util.StringTokenizer;
 import java.util.Vector;
 
-public class IrcMessage {
+public class Message {
 
 	private String source = "";
 	private String target = "";
@@ -13,7 +15,7 @@ public class IrcMessage {
 	/**
 	 * @TODO this is all messed up.
 	 */
-	public IrcMessage(String msg) {
+	public Message(String msg) {
 
 
 		if (msg.length() == 0)

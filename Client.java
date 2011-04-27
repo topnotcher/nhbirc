@@ -1,9 +1,12 @@
+
 import java.awt.BorderLayout;
 import javax.swing.JFrame;
 
+import irc.*;
+
 class Client extends JFrame {
 
-	private Irc irc;
+	private Connection irc;
 
 	private GUIConsole console;
 
@@ -18,7 +21,7 @@ class Client extends JFrame {
 	private Client() {
 		getContentPane().setLayout(new BorderLayout());
 
-		irc = new Irc("irc.jaundies.com", 6667, "foobar");
+		irc = new Connection("irc.jaundies.com", 6667, "foobar");
 		
 		setSize(800,800);
 
@@ -51,9 +54,9 @@ class Client extends JFrame {
 	/**
 	 * for prototyping, just send all privmsgs to a window...
 	 */
-	private IrcMessageHandler messageHandler = new IrcMessageHandler() {
+	private MessageHandler messageHandler = new MessageHandler() {
 		//and put all PMS whether channel or private in one window...
-		public void handle(IrcMessage msg) {
+		public void handle(Message msg) {
 			console.out().println( "<" + msg.getSource() + "> " + msg.getMessage() );
 		}
 	};
