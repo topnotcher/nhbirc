@@ -21,7 +21,7 @@ class Client extends JFrame {
 	private Client() {
 		getContentPane().setLayout(new BorderLayout());
 
-		irc = new Connection("irc.jaundies.com", 6667, "foobar");
+		irc = new Connection("irc.jaundies.com", 6667, "FUBAR");
 		
 		setSize(800,800);
 

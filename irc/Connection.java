@@ -70,7 +70,7 @@ public class Connection {
 
 		//will replace these with own implementation of queue/prioirty queue later.
 		sendQ = new ConcurrentLinkedQueue<String>();
-		recvQ = new ConcurrentLinkedQueue<IrcMessage>();
+		recvQ = new ConcurrentLinkedQueue<Message>();
 	
 //		System.out.println("Creating a new IRC connection...");
 
@@ -133,7 +133,7 @@ public class Connection {
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 
-		IrcMessage msg = new IrcMessage(raw);
+		Message msg = new Message(raw);
 	
 		//temp ping impl
 		//@TODO: parser with priorities
@@ -191,9 +191,9 @@ public class Connection {
 	private class IrcMessageSubscription implements MessageHandler {
 		private String[] cmds;
 		
-		private IrcMessageHandler handler;
+		private MessageHandler handler;
 			
-		public IrcMessageSubscription(String[] cmds, IrcMessageHandler handler) {
+		public IrcMessageSubscription(String[] cmds, MessageHandler handler) {
 			this.cmds = cmds;
 			this.handler = handler;
 		}
@@ -208,7 +208,7 @@ public class Connection {
 	}
 	
 	//handler for some internal stuff.
-	private IrcMessageHandler internalHandler = new IrcMessageHandler() {
+	private MessageHandler internalHandler = new MessageHandler() {
 
 		public void handle(Message msg) {
 			if ( msg.getCommand().equals("001")) {

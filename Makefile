@@ -5,7 +5,7 @@ SOURCES=$(shell ls *.java)
 
 OBJECTS=$(SOURCES:.java=.class)
 
-all: classes
+all: clean classes
 		
 .SUFFIXES: .java .class
 

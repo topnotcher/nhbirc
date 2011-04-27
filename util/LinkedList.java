@@ -10,7 +10,7 @@ import java.util.NoSuchElementException;
  * A list.
  * @see AbstractSequentialList
  */
-class LinkedList<T> extends AbstractSequentialList<T> {
+public class LinkedList<T> extends AbstractSequentialList<T> {
 
 	/**
 	 * Head node of the list.
