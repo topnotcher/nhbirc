@@ -41,7 +41,7 @@ class Client extends JFrame {
 
 	private IrcMessageHandler messageHandler = new IrcMessageHandler() {
 		public void handle(IrcMessage msg) {
-			console.out().println( msg.getMessage() );
+			console.out().println( "<" + msg.getSource() + "> " + msg.getMessage() );
 		}
 	};
 }

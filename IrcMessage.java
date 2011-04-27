@@ -65,6 +65,13 @@ public class IrcMessage {
 		return msg;
 	}
 
+	/**
+	 * @TODO make a class to encapsulate source
+	 * so it can parse a full hostmask
+	 */
+	public String getSource() {
+		return source;
+	}
 	public String toString() {
 		return source + " " + command + " " + target + " :"	+msg;
 	}

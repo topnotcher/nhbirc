@@ -110,7 +110,7 @@ public class Irc {
 
 		if ( msg.getCommand().equals("PING") ) {
 			System.out.println("PING");
-			send("PONG", msg.getCommand());
+			send("PONG", msg.getMessage());
 		}
 		else
 			recvQ.offer(msg);
