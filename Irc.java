@@ -24,16 +24,23 @@ public class Irc {
 	 */
 	private int port;
 
+	//nickname, username, realname.
 	private String nick,user,real;
 
+	//queue of messages to send.
 	private Queue<String> sendQ;
 	
+	//queue of messages received.
 	private Queue<IrcMessage> recvQ;
 
+	//Irc connection
 	private IrcConnection conn;
 
+	//message handlers (subscribers)
 	private List<IrcMessageHandler> handlers = new LinkedList<IrcMessageHandler>();
 	
+	//whether or not registration phase of connection is complete
+	//(no non-registration commands can be sent until this is done)
 	private boolean registered = false;
 
 	public Irc(String host, int port, String nick) {
@@ -60,24 +67,31 @@ public class Irc {
 		sendQ = new ConcurrentLinkedQueue<String>();
 		recvQ = new ConcurrentLinkedQueue<IrcMessage>();
 	
-		System.out.println("Creating a new IRC connection...");
+//		System.out.println("Creating a new IRC connection...");
 
+		//connect
+		//(blocks until connected)
 		conn = new IrcConnection();
-
-		System.out.println("DONE Connecting; Enterint main loop.");
 
 		
 		//Cause the connection to enter the main loop.
 		(new Thread( conn, "Connection" )).start();
 
+		//handle messages in a separate thread
+		//so the socket I/O never pauses
+		//(This can be important in the case of a flood of messages which require
+		//some potentially long, synchonous operation to handle. In this case,
+		//a PING could be left unread which would cause a pint timeout.
+		//)
 		(new Thread( new MessageHandler(), "Message Handler" )).start();
 
-		System.out.println("Run returned...");
-
+		//initiatite registration
 		register();
 
+		//listen for IRC welcome message
 		addMessageHandler("001", this.internalHandler);
-		//@TODO block while registering...
+
+		//This blocks while the connection is registering
 		//@TODO timeout...
 		while (!registered) {
 			try {
@@ -86,38 +100,49 @@ public class Irc {
 			
 			}
 		}
+
+		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
 
+	//handle a single command
 	public void addMessageHandler(String cmd, IrcMessageHandler handler) {
 		String[] cmds = {cmd};
 		addMessageHandler(cmds, handler);
 	}
-
+	
+	//handle an array of commands
 	public void addMessageHandler(String[] cmds, IrcMessageHandler handler) {
 		handlers.add( new IrcMessageSubscription(cmds,handler) );
 	}
 
+	//@TODO wildcard handler?
+
+	//initiate registration
 	private void register() {
 		sendRaw("NICK " +nick);
 		sendRaw("USER " + user + " 0 * : " + real);
 	}
 
 
+	//handle a raw received message
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 
 		IrcMessage msg = new IrcMessage(raw);
-
+	
+		//temp ping impl
+		//@TODO: parser with priorities
 		if ( msg.getCommand().equals("PING") ) {
-			System.out.println("PING");
 			send("PONG", msg.getMessage());
 		}
+		//if it isn't a ping queue it
 		else
 			recvQ.offer(msg);
 
-		System.out.println("RECV " + raw);
+//		System.out.println("RECV " + raw);
 	}
 
+	//public send
 	public void send(String cmd, String msg) {
 		//@TODO
 		sendRaw(cmd + " :" + msg);
@@ -129,7 +154,7 @@ public class Irc {
 		if (!sendQ.offer(cmd))
 			throw new RuntimeException("Failed to queue message: " + cmd);
 
-		System.out.println("QUEUE: " + cmd);
+//		System.out.println("QUEUE: " + cmd);
 	}
 
 	/**
@@ -157,6 +182,7 @@ public class Irc {
 		conn = null;
 	}
 
+	//a subscription to irc messages
 	private class IrcMessageSubscription implements IrcMessageHandler {
 		private String[] cmds;
 		
@@ -167,6 +193,7 @@ public class Irc {
 			this.handler = handler;
 		}
 
+		//tests if this subscription matches, calls the handlers handle if it does.
 		public void handle(IrcMessage msg) {
 			for ( String cmd : cmds ) 
 				if (cmd.equals(msg.getCommand())) 
@@ -174,7 +201,8 @@ public class Irc {
 				
 		}
 	}
-		
+	
+	//handler for some internal stuff.
 	private IrcMessageHandler internalHandler = new IrcMessageHandler() {
 
 		public void handle(IrcMessage msg) {
@@ -183,6 +211,7 @@ public class Irc {
 		}
 	};
 
+	//message handler thread
 	private class MessageHandler implements Runnable {
 
 		public MessageHandler() {
@@ -212,9 +241,10 @@ public class Irc {
 		}
 	}
 
+	//connection thread
 	private class IrcConnection implements Runnable {
-		
-			//BLEH
+
+		//per RFC, max size of irc message...
 		private static final int MSG_SIZE = 512;
 
 		private SocketChannel conn = null;
@@ -257,29 +287,26 @@ public class Irc {
 				try {	
 
 					//block until a socket is selected...
-					System.out.println("select()");
+//					System.out.println("select()");
 					selector.select();
 					
 					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
 					while ( keys.hasNext() ) {
 
-						System.out.println("keys..");
+//						System.out.println("keys..");
 						SelectionKey key = keys.next();
 						SocketChannel keyChannel = (SocketChannel)key.channel();
 
 						keys.remove();
 
 						if (sendQ.peek() != null)
-							System.out.println("There are commands to send");
+//							System.out.println("There are commands to send");
 
 			
 						if ( key.isWritable() ) 
 							while ( sendQ.peek() != null )
 								send( keyChannel, sendQ.poll() );
-						else
-							System.out.println("Not writeable");
-
 
 						if ( key.isReadable() ) 
 							recv( keyChannel );
@@ -298,11 +325,11 @@ public class Irc {
 
 			}
 
-			System.out.println("STopped Running");
+//			System.out.println("STopped Running");
 		}
 
 		private void send(SocketChannel channel, String msg) {
-			System.out.println("SEND :" + msg);
+//			System.out.println("SEND :" + msg);
 
 			msg += "\n";
 			
@@ -320,7 +347,6 @@ public class Irc {
 			} catch (java.io.IOException e) {
 				e.printStackTrace();
 			}
-
 
 		}
 

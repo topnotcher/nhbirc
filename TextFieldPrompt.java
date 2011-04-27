@@ -105,8 +105,9 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 		//the first two "parts" of this just fix StringIndexOutofBoundsExceptions
 		//the second part makes sure the prompt is still there.
 		//this is by no means fool proof...
-		if ( text.length() <= prompt.length() || prompt.length() < 1 || !text.substring(0, prompt.length()-1).equals(prompt) ) {
+		if ( text.length() <= prompt.length() || prompt.length() < 1 || !text.substring(0, prompt.length()).equals(prompt) ) {
 			history.reset();
+//			System.out.println( "TEXT: '" + text.substring(0, prompt.length()-1) + "'");
 			prompt();
 		}
 	}
@@ -138,8 +139,8 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 		String text = field.getText();
 		
 		//terminal history -- fix this
-		if (echo) 
-			System.out.println(text);
+//		if (echo) 
+//			System.out.println(text);
 		
 		if (text.length() < prompt.length())  {
 			prompt("");

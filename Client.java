@@ -12,6 +12,9 @@ class Client extends JFrame {
 	}
 
 
+	/**
+	 * **BASIC** prototype.
+	 */
 	private Client() {
 		getContentPane().setLayout(new BorderLayout());
 
