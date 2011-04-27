@@ -43,6 +43,9 @@ public class Irc {
 	//(no non-registration commands can be sent until this is done)
 	private boolean registered = false;
 
+	//how the server identifies itself in the 001
+	private String hostname = "none";
+
 	public Irc(String host, int port, String nick) {
 		this(host,port,nick,nick);
 	}
@@ -206,8 +209,10 @@ public class Irc {
 	private IrcMessageHandler internalHandler = new IrcMessageHandler() {
 
 		public void handle(IrcMessage msg) {
-			if ( msg.getCommand().equals("001"))
+			if ( msg.getCommand().equals("001")) {
 				registered = true;
+				hostname = msg.getSource();
+			}
 		}
 	};
 
@@ -255,7 +260,14 @@ public class Irc {
 
 		private CharBuffer msg;
 
-		ByteBuffer out;
+		private ByteBuffer out;
+
+		private long last_tx = 0;
+
+		private long last_rx = 0;
+
+		//max idle of 1.5 minutes...
+		private static final int max_idle = (int)(1000*60*1.5);
 
 		private IrcConnection() throws java.io.IOException {
 			conn  = SocketChannel.open();
@@ -271,6 +283,8 @@ public class Irc {
 
 			msg = CharBuffer.allocate(MSG_SIZE);
 
+
+			last_tx = last_rx = System.currentTimeMillis();
 			connected = true;
 		}
 
@@ -304,9 +318,16 @@ public class Irc {
 //							System.out.println("There are commands to send");
 
 			
-						if ( key.isWritable() ) 
+						if ( key.isWritable() ) {
+		
+							//rudementary keepalive.
+							//@TODO
+							if ( (System.currentTimeMillis() - last_tx > max_idle) || (System.currentTimeMillis() - last_rx) > max_idle) 
+								send(keyChannel, "PING :"+hostname);
+
 							while ( sendQ.peek() != null )
 								send( keyChannel, sendQ.poll() );
+						}
 
 						if ( key.isReadable() ) 
 							recv( keyChannel );
@@ -344,6 +365,8 @@ public class Irc {
 			try { //@TODO
 				while (out.hasRemaining())
 					channel.write(out);
+
+				last_tx = System.currentTimeMillis();
 			} catch (java.io.IOException e) {
 				e.printStackTrace();
 			}
@@ -371,6 +394,7 @@ public class Irc {
 				//create a character buffer from the bytes read.
 				cBuf = decoder.decode(in);
 
+				
 				//for each character in the buffer
 				while ( cBuf.remaining() > 0 &&  ( tmp = cBuf.get() ) != '\0' ) {
 					
@@ -379,6 +403,8 @@ public class Irc {
 
 						int pos = msg.position();
 						msg.clear();
+
+						last_rx = System.currentTimeMillis();
 
 						//because clearing the buffer just resets the position, so if we 
 						//don't take the correct subseq, old data from the last command will be passed.
