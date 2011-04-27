@@ -4,6 +4,10 @@ import javax.swing.JTextField;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.util.Scanner;
+
 class TextFieldPrompt extends InputStream implements KeyListener {
 	
 	/**
@@ -38,6 +42,9 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 	 */
 	final private boolean echo = true;
 
+	//@TODO a single actionlistener
+	private ActionListener listener = null;
+
 	public TextFieldPrompt() {
 		//creat the textfield
 		field = new TextFieldPrompt.TextField();
@@ -47,6 +54,11 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 
 		//prompt for nothing.
 		prompt();
+	}
+
+
+	public void addActionListener(ActionListener l) {
+		listener = l;
 	}
 
 	public void keyReleased(KeyEvent e) {
@@ -59,6 +71,13 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 
 			case KeyEvent.VK_ENTER:
 				readField();
+				//@TODO
+		
+				if ( listener != null ) {
+					Scanner sc = new Scanner(this);
+					listener.actionPerformed( new ActionEvent( this, 0, sc.nextLine()));
+				}
+
 				break;
 
 			case KeyEvent.VK_UP:
@@ -131,7 +150,7 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 
 		history.add(text);
 
-		text = text+ "\n";
+		text = text + "\n";
 
 		synchronized(this) {
 			appendBuffer(text.getBytes());

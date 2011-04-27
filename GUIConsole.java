@@ -21,6 +21,8 @@ import java.io.InputStream;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseEvent;
 
+import java.awt.event.ActionListener;
+
 public class GUIConsole extends Panel implements MouseListener {
 
 	/**
@@ -42,6 +44,8 @@ public class GUIConsole extends Panel implements MouseListener {
 	 * Textfield for the input stream of the console.
 	 */
 	protected JTextField field;
+
+	private ActionListener listener;
 
 
 	public GUIConsole() {
@@ -80,6 +84,10 @@ public class GUIConsole extends Panel implements MouseListener {
 
 		//and of course monospace...
 		setFont(new Font("Monospaced", Font.PLAIN, 12));
+	}
+	
+	public void addActionListener(ActionListener l) {
+		in.addActionListener(l);
 	}
 
 	public void setOut(PrintStream out) {

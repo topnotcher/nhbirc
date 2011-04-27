@@ -144,6 +144,9 @@ public class Irc {
 		//only set the nick on a successful reply...
 	}
 
+	public String getNick() {
+		return this.nick;
+	}
 	public void quit() {
 		quit("Client exited.");
 	}

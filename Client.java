@@ -15,7 +15,7 @@ class Client extends JFrame {
 	private Client() {
 		getContentPane().setLayout(new BorderLayout());
 
-		irc = new Irc("irc.jaundies.com", 6667, "fubar_test");
+		irc = new Irc("irc.jaundies.com", 6667, "foobar");
 		
 		setSize(800,800);
 
@@ -32,16 +32,36 @@ class Client extends JFrame {
 
 		console = new GUIConsole();
 
-		add(console,BorderLayout.CENTER);
 
+		add(console,BorderLayout.CENTER);
+	
+
+		console.addActionListener(commandListener);
+		
+		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler("PRIVMSG", messageHandler);
 
-		irc.send("JOIN", "#fooooooooooo");
+		//a Channel I think might be active
+		irc.send("JOIN", "#divinelunacy");
 	}
 
+	/**
+	 * for prototyping, just send all privmsgs to a window...
+	 */
 	private IrcMessageHandler messageHandler = new IrcMessageHandler() {
+		//and put all PMS whether channel or private in one window...
 		public void handle(IrcMessage msg) {
 			console.out().println( "<" + msg.getSource() + "> " + msg.getMessage() );
+		}
+	};
+
+	/*
+	 * TEMP to provide working chatting...
+	 */
+	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
+		public void actionPerformed(java.awt.event.ActionEvent e) {
+			irc.send("PRIVMSG #divinelunacy", e.getActionCommand());
+			console.out().println("<" + irc.getNick() + "> " + e.getActionCommand());
 		}
 	};
 }
