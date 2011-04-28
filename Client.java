@@ -9,7 +9,9 @@ class Client extends JFrame {
 
 	private Connection irc;
 
-	private GUIConsole console,status;
+	private GUIConsole console;
+	
+	private ChatWindow status;
 
 	private JTabbedPane tabs;
 
@@ -17,15 +19,12 @@ class Client extends JFrame {
 		new Client();
 	}
 
-
 	private final String CHAN = "#divinelunacy";
 
 	/**
 	 * **BASIC** prototype.
 	 */
 	private Client() {
-//		getContentPane().setLayout(new BorderLayout());
-
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
 		setSize(800,800);
@@ -39,10 +38,11 @@ class Client extends JFrame {
 		add(tabs);
 
 		//tabs contain a status window.
-		status = new GUIConsole("Status");
+	//	status = new GUIConsole("Status");
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
 
-		tabs.addTab("Status", status);
+		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
+		
 
 		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler(messageHandler);
@@ -80,6 +80,10 @@ class Client extends JFrame {
 		irc.join( CHAN );
 	}
 
+	private void add(ChatWindow c) {
+		tabs.addTab(c.getName(), c.getContentPane());
+	}
+
 	/**
 	 * for prototyping, just send all privmsgs to a window...
 	 */
@@ -90,7 +94,7 @@ class Client extends JFrame {
 			if ( msg.getType() == MessageType.CHANNEL )
 				console.out().println( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
 
-			status.out().println( msg.getRaw() );	
+			status.put( msg.getRaw() );	
 		}
 	};
 

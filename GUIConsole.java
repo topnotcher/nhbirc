@@ -59,8 +59,6 @@ public class GUIConsole extends JPanel implements MouseListener {
 		//although it's probably a little bloated for this simple purpose
 		super(new BorderLayout());
 	
-		System.out.println("HAI");
-
 		//OutputStream that appends output to a textarea
 		TextAreaOutput textout = new TextAreaOutput();
 
