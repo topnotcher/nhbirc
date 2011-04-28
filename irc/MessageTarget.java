@@ -73,4 +73,24 @@ public class MessageTarget {
 	
 		throw new RuntimeException("Cannot get host from that scope.");
 	}
+
+	//this is partially for test purposes
+	public String toString() {
+		if ( scope == Scope.NONE )
+			return "-------";
+		
+		if ( scope == Scope.CHANNEL )
+			return getChannel();
+
+		if ( scope == Scope.NICK )
+			return getNick();
+
+		if ( scope == Scope.SERVER )
+			return getHost();
+
+		if ( scope == Scope.USER ) 
+			return getNick() + "!" + getUser() + "@" + getHost();
+
+		return "?????";
+	}
 }
