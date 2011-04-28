@@ -1,11 +1,11 @@
 JC=javac
 CLASSPATH=.
 JFLAGS=-g -classpath $(CLASSPATH)
-SOURCES=$(shell ls *.java)
+SOURCES=$(shell find . -name '*.java')
 
 OBJECTS=$(SOURCES:.java=.class)
 
-all: clean classes
+all: classes
 		
 .SUFFIXES: .java .class
 
@@ -18,4 +18,5 @@ default: classes
 classes: $(SOURCES:.java=.class)
 
 clean:
-	$(RM) *.class
+
+	$(RM) $(shell find . -name '*.class');
