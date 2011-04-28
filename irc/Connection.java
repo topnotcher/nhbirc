@@ -45,7 +45,7 @@ public class Connection {
 	private IrcConnection conn;
 
 	//message handlers (subscribers)
-	private List<MessageHandler> handlers = new util.LinkedList<MessageHandler>();
+	private List<IrcMessageSubscription> handlers = new util.LinkedList<IrcMessageSubscription>();
 	
 	//whether or not registration phase of connection is complete
 	//(no non-registration commands can be sent until this is done)
@@ -218,7 +218,7 @@ public class Connection {
 	}
 
 	//a subscription to irc messages
-	private class IrcMessageSubscription implements MessageHandler {
+	public class IrcMessageSubscription {
 			
 		private Set<MessageType> types = null;
 		private Set<MessageCode> codes = null;
@@ -281,7 +281,7 @@ public class Connection {
 		}
 
 		//tests if this subscription matches, calls the handlers handle if it does.
-		public void handle(Message msg) {
+		private void handle(Message msg) {
 
 			//Type must ALWAYS match...
 			if ( this.types != null && !types.contains( msg.getType() ) )
@@ -360,7 +360,7 @@ public class Connection {
 
 				while ( recvQ.peek() != null ) { 
 
-					Iterator<MessageHandler> it = handlers.iterator();
+					Iterator<IrcMessageSubscription> it = handlers.iterator();
 						
 					while (it.hasNext()) try {
 						it.next().handle( recvQ.peek() );
