@@ -107,14 +107,24 @@ class MessageParser {
 			else if ( command.equals("INVITE") )
 				type = MessageType.INVITE;
 
-			else if ( command.equals("JOIN") ) 
+			else if ( command.equals("JOIN") ) {
 				type = MessageType.JOIN;
+				
+				//make the channel the target for JOIN
+				//VIA rfc2812, servers shouldn't use a CSV list
+				//when sending JOINs to clients (e.g. this is valid)
+				message.setTarget( new MessageTarget( message.getMessage() ) );
+			}
 
 			else if ( command.equals("TOPIC") )
 				type = MessageType.TOPICCHANGE;
 
-			else if ( command.equals("NICK") )
+			else if ( command.equals("NICK") ) {
 				type = MessageType.NICKCHANGE;
+	
+				//similar to JOIN
+				message.setTarget( new MessageTarget( message.getMessage() ) );
+			}
 
 			else if ( command.equals("KICK") )
 				type = MessageType.PART;
