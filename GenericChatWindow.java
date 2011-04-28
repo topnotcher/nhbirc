@@ -1,7 +1,6 @@
 import java.awt.BorderLayout;
 
 class GenericChatWindow extends ChatWindowAbstract {
-
 	public GenericChatWindow(String name, ChatWindow.Type type) {
 		super(name,type);
 		

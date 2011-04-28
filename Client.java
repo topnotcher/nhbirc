@@ -8,10 +8,8 @@ import irc.*;
 class Client extends JFrame {
 
 	private Connection irc;
-
-	private GUIConsole console;
 	
-	private ChatWindow status;
+	private ChatWindow status, channel;
 
 	private JTabbedPane tabs;
 
@@ -56,26 +54,12 @@ class Client extends JFrame {
 			e.printStackTrace();
 		}
 
+		channel = new ChannelWindow(CHAN);
 
-		//a channel window is a split pane...
-		JSplitPane chan = new JSplitPane( JSplitPane.HORIZONTAL_SPLIT) ;
+		channel.addActionListener(commandListener);
 
 
-		//the left of the split pane is the console
-		console = new GUIConsole(CHAN);
-		console.addActionListener(commandListener);
-
-		chan.setLeftComponent(console);
-
-		String[] test = {"User1", "user2", "user3","reallylongname"};
-		chan.setRightComponent(new JList(test));
-
-		//favor the left side???
-		chan.setResizeWeight(1.0);
-
-	
-		//add the channel to the tabs.
-		tabs.addTab(CHAN, chan);
+		add(channel);
 
 		irc.join( CHAN );
 	}
@@ -92,7 +76,7 @@ class Client extends JFrame {
 		//and put all PMS whether channel or private in one window...
 		public void handle(Message msg) {
 			if ( msg.getType() == MessageType.CHANNEL )
-				console.out().println( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+				channel.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
 
 			status.put( msg.getRaw() );	
 		}
@@ -104,7 +88,7 @@ class Client extends JFrame {
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
 			irc.msg( CHAN, e.getActionCommand() );
-			console.out().println("<" + irc.nick() + "> " + e.getActionCommand());
+			channel.put("<" + irc.nick() + "> " + e.getActionCommand());
 		}
 	};
 }
