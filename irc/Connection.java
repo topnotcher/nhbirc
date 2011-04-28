@@ -16,6 +16,10 @@ import java.util.Iterator;
 import java.nio.CharBuffer;
 import java.util.List;
 
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+
 public class Connection {
 	
 	/**
@@ -111,7 +115,12 @@ public class Connection {
 		//listen for IRC welcome message
 		String[] subs = { MessageCode.RPL_WELCOME.getCode() , "PING"};
 
-		addMessageHandler(subs, this.internalHandler);
+		addMessageHandler(this.internalHandler)
+			.addType( MessageType.LOGIN )
+			.addType( MessageType.PING )
+			.addCode( MessageCode.RPL_WELCOME )
+			.addCommand( "PING" )
+		;
 
 		//This blocks while the connection is registering
 		//@TODO timeout...
@@ -126,22 +135,16 @@ public class Connection {
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
 
-	public void addMessageHandler(MessageHandler handler) {
-		handlers.add( new IrcMessageSubscription(null, handler));
-	}
+	/**
+	 * Provides a fluent interface...
+	 */
+	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
 
-	//handle a single command
-	public void addMessageHandler(String cmd, MessageHandler handler) {
-		String[] cmds = {cmd};
-		addMessageHandler(cmds, handler);
-	}
-	
-	//handle an array of commands
-	public void addMessageHandler(String[] cmds, MessageHandler handler) {
-		handlers.add( new IrcMessageSubscription(cmds,handler) );
-	}
+		IrcMessageSubscription sub = new IrcMessageSubscription(handler); 
+		handlers.add( sub );
 
-	//@TODO wildcard handler?
+		return sub;
+	}
 
 	//initiate registration
 	private void register() {
@@ -216,27 +219,114 @@ public class Connection {
 
 	//a subscription to irc messages
 	private class IrcMessageSubscription implements MessageHandler {
-		private String[] cmds;
-		
+			
+		private Set<MessageType> types = null;
+		private Set<MessageCode> codes = null;
+
+		private List<String> cmds = null;
+		private List<Pattern> patterns = null;
+
 		private MessageHandler handler;
 			
-		public IrcMessageSubscription(String[] cmds, MessageHandler handler) {
-			this.cmds = cmds;
+		private IrcMessageSubscription(MessageHandler handler) {
 			this.handler = handler;
+		}
+
+		/**
+		 * Add a type to the subscription
+		 * @return provides a fluent interface
+		 */
+		public IrcMessageSubscription addType(MessageType type) {
+			
+			if  ( types == null ) 
+				types = new TreeSet<MessageType>();
+
+			types.add(type);
+
+			return this;
+		}
+
+		/**
+		 * Add a code to the subscription
+		 * @return provides a fluent interface
+		 */
+		public IrcMessageSubscription addCode(MessageCode code) {
+
+			if  ( codes == null ) 
+				codes = new TreeSet<MessageCode>();
+
+			codes.add(code);
+
+			return this;
+		}
+
+		public IrcMessageSubscription addCommand(String cmd) {
+			
+			if ( cmds == null ) 
+				cmds = new util.LinkedList<String>();
+
+			cmds.add(cmd);
+
+			return this;
+		}
+
+		public IrcMessageSubscription addPattern(Pattern p) {
+			
+			if ( patterns == null )
+				patterns = new util.LinkedList<Pattern>();
+
+			patterns.add(p);
+
+			return this;
 		}
 
 		//tests if this subscription matches, calls the handlers handle if it does.
 		public void handle(Message msg) {
-			//speshul
-			if ( cmds == null) {
-				handler.handle(msg);
+
+			//Type must ALWAYS match...
+			if ( this.types != null && !types.contains( msg.getType() ) )
 				return;
+
+			//code or pattern must match...
+			boolean codeMatches = true,
+					cmdMatches = true;
+
+			if ( this.codes != null && !codes.contains( msg.getCode() ) )
+				codeMatches = false;
+
+		
+			//if the code DOESN'T match and there are commands to match.
+			if ( !codeMatches && this.cmds != null ) {
+				cmdMatches = false;
+
+				for (String cmd : cmds) {
+					if ( cmd.equals(msg.getCommand()) ) {
+						cmdMatches = true;
+						break;
+					}
+				}
 			}
 
-			for ( String cmd : cmds ) 
-				if (cmd.equals(msg.getCommand())) 
-					handler.handle(msg);
-				
+			//if we didn't find a command or code match...
+			if ( !(cmdMatches || codeMatches) ) 
+				return;
+
+			//Patterns must always match....
+			if ( this.patterns != null ) {
+				boolean found = false;
+
+				for (Pattern p : patterns) {
+					if ( p.matcher( msg.getMessage() ).matches() ) {
+						found = true;
+						break;
+					}
+				}
+
+				if (!found) return;
+			}
+
+			//if we haven't returne by this point, the message must be a match...
+			handler.handle(msg);		
 		}
 	}
 	
@@ -272,8 +362,12 @@ public class Connection {
 
 					Iterator<MessageHandler> it = handlers.iterator();
 						
-					while (it.hasNext()) 
+					while (it.hasNext()) try {
 						it.next().handle( recvQ.peek() );
+					} catch (Exception e) {
+						//TODO need a way to handle these...
+						e.printStackTrace();
+					}
 
 					recvQ.poll();
 				}
