@@ -1,71 +1,69 @@
 package irc;
 
-import java.util.StringTokenizer;
-import java.util.Vector;
+public class Message implements Comparable<Message> {
 
-public class Message {
+	private MessageTarget source;
+	private MessageTarget target;
 
-	private String source = "";
-	private String target = "";
-	private String command = "";
+	private String command;
+
 	private String msg = "";
 
 	private String[] args;
 
-	/**
-	 * @TODO this is all messed up.
+	private Priority priority;
+
+	private MessageCode code;
+
+	private MessageType type;
+
+	Message() {}
+
+	/** 
+	 * Package private setters...
 	 */
-	public Message(String msg) {
-
-
-		if (msg.length() == 0)
-			throw new RuntimeException("Empty message");
-
-
-		Vector<String> args = new Vector<String>(2);
-		String trailing = null;
-
-		int pos = -1;
-
-		//check for a leading :, which indicates the meessage has a source
-		if ( msg.charAt(0) == ':' ) {
-			pos = msg.indexOf(' ',1);
-			source = msg.substring(1, pos);
-			msg = msg.substring(pos+1);
-		}
-
-		//check for a " :" delimiter, which separates the message "header" from the body.
-		if ( (pos = msg.indexOf(" :")) != -1 ) {
-			trailing = msg.substring(pos+2);
-//			System.out.println("TRAILING " + trailing);
-			
-			//when there is a "header/body",
-			//we only care about parsing 
-			//the header.
-			msg = msg.substring(0,pos); 	
-		}
+	void setArgs(String[] args) {
+		this.args = args;
+	}
 	
-		for (String arg : msg.split(" "))
-			args.add(arg);
+	void setCommand(String command) {
+		this.command = command;
+	}
 
-		if (trailing != null) {
-			args.add(trailing);
-			this.msg = trailing;
-		} else {
-			this.msg = msg;
-		}
-		
-		command = args.get(0);
+	void setSource(MessageTarget source) {
+		this.source = source;
+	}
 
-		this.args = args.toArray(new String[args.size()]);
+	void setTarget(MessageTarget target) {
+		this.target = target;
+	}
+	
+	void setPriority(Priority priority) {
+		this.priority = priority;
+	}
+	
+	void setMessage(String msg) {
+		this.msg = msg;
+	}
+	
+	void setCode( MessageCode code ) {
+		this.code = code;
+	}
 
-//		for (String arg: this.args)
-//			System.out.println("ARG: " + arg);
-//
-//		System.out.println("MESSAGE: " + this.msg);
-///		System.out.println("PREFIX: " + this.source);
-//		System.out.println("COMMAND: " + this.command);
+	void setType( MessageType type ) {
+		this.type = type;
+	}
 
+	public int numArgs() {
+		return args.length;
+	}
+
+	public String getArg(int n) {
+		return args[n];
+	}
+
+	public String[] getArgs() {
+		return args;
 	}
 
 	public String getCommand() {
@@ -76,15 +74,33 @@ public class Message {
 		return msg;
 	}
 
-	/**
-	 * @TODO make a class to encapsulate source
-	 * so it can parse a full hostmask
-	 */
-	public String getSource() {
+	public MessageTarget getSource() {
 		return source;
 	}
 
+	public MessageTarget getTarget() {
+		return target;
+	}
+
+	public Priority getPriority() {
+		return priority;
+	}
+
+	public MessageType getType() {
+		return type;
+	}
+
+	public MessageCode getCode() {
+		return code;
+	}
+
+	public int compareTo(Message m) {
+		return priority.getValue() - m.priority.getValue();
+	}
+
+/*
 	public String toString() {
 		return source + " " + command + " " + target + " :"	+msg;
 	}
+*/
 }

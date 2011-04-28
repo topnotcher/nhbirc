@@ -7,7 +7,9 @@ import java.net.InetSocketAddress;
 import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.concurrent.ConcurrentLinkedQueue;
+//import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+
 import java.util.Queue;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -30,7 +32,7 @@ public class Connection {
 	private String nick,user,real;
 
 	//queue of messages to send.
-	private Queue<String> sendQ;
+	private Queue<OutgoingMessage> sendQ;
 	
 	//queue of messages received.
 	private Queue<Message> recvQ;
@@ -47,6 +49,14 @@ public class Connection {
 
 	//how the server identifies itself in the 001
 	private String hostname = "none";
+
+	private long last_tx = 0;
+
+	private long last_rx = 0;
+
+		//max idle of 1.5 minutes...
+	private static final int MAX_IDLE = (int)(1000*60*1.5);
+
 
 	public Connection(String host, int port, String nick) {
 		this(host,port,nick,nick);
@@ -69,8 +79,8 @@ public class Connection {
 	public void connect() throws java.io.IOException {
 
 		//will replace these with own implementation of queue/prioirty queue later.
-		sendQ = new ConcurrentLinkedQueue<String>();
-		recvQ = new ConcurrentLinkedQueue<Message>();
+		sendQ = new PriorityBlockingQueue<OutgoingMessage>();
+		recvQ = new PriorityBlockingQueue<Message>();
 	
 //		System.out.println("Creating a new IRC connection...");
 
@@ -88,13 +98,15 @@ public class Connection {
 		//some potentially long, synchonous operation to handle. In this case,
 		//a PING could be left unread which would cause a pint timeout.
 		//)
-		(new Thread( new IrcMessageHandler(), "Message Handler" )).start();
+		(new Thread( new Worker(), "Message Handler" )).start();
 
 		//initiatite registration
 		register();
 
 		//listen for IRC welcome message
-		addMessageHandler("001", this.internalHandler);
+		String[] subs = { MessageCode.RPL_WELCOME.getCode() , "PING"};
+
+		addMessageHandler(subs, this.internalHandler);
 
 		//This blocks while the connection is registering
 		//@TODO timeout...
@@ -133,15 +145,16 @@ public class Connection {
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 
-		Message msg = new Message(raw);
+		Message msg = MessageParser.parse( raw );
 	
 		//temp ping impl
 		//@TODO: parser with priorities
-		if ( msg.getCommand().equals("PING") ) {
-			send("PONG", msg.getMessage());
-		}
+//		if ( msg.getCommand().equals("PING") ) {
+//			send("PONG", msg.getMessage());
+//		}
+
 		//if it isn't a ping queue it
-		else
+//		else
 			recvQ.offer(msg);
 
 //		System.out.println("RECV " + raw);
@@ -149,17 +162,24 @@ public class Connection {
 
 	//public send
 	public void send(String cmd, String msg) {
-		//@TODO
-		sendRaw(cmd + " :" + msg);
+		send(cmd,msg,Priority.MEDIUM);
+	}
+
+	public void send(String cmd, String msg, Priority p) {
+		sendRaw(cmd + " :" + msg, p);
 	}
 
 	private void sendRaw(String cmd) {
+		sendRaw(cmd, Priority.MEDIUM);
+	}
+
+	private void sendRaw(String cmd, Priority p) {
+
 		//@TODO error checking
 		//offer returns bool.
-		if (!sendQ.offer(cmd))
+		if (!sendQ.offer( new OutgoingMessage(cmd,p) ))
 			throw new RuntimeException("Failed to queue message: " + cmd);
 
-//		System.out.println("QUEUE: " + cmd);
 	}
 
 	/**
@@ -211,24 +231,31 @@ public class Connection {
 	private MessageHandler internalHandler = new MessageHandler() {
 
 		public void handle(Message msg) {
-			if ( msg.getCommand().equals("001")) {
+			if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
 				registered = true;
-				hostname = msg.getSource();
-			}
+				hostname = msg.getSource().getHost();
+			} else if ( msg.getCommand().equals("PING") )
+
+				//preempt!
+				send( "PONG", msg.getMessage(), Priority.CRITICAL );
 		}
 	};
 
 	//message handler thread
-	private class IrcMessageHandler implements Runnable {
+	private class Worker implements Runnable {
 
-		private IrcMessageHandler() {
+		private Worker() {
 	
 		}
 
 		public void run() {
 
 			while(true) {
-				
+
+				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE) || (System.currentTimeMillis() - last_rx) > MAX_IDLE) 
+					send("PING", nick, Priority.CRITICAL);
+
+
 				while ( recvQ.peek() != null ) { 
 
 					Iterator<MessageHandler> it = handlers.iterator();
@@ -248,6 +275,28 @@ public class Connection {
 		}
 	}
 
+	private static class OutgoingMessage implements Comparable<OutgoingMessage> {
+		
+		Priority priority;
+		String msg;
+
+		private OutgoingMessage(String msg) {
+			this(msg,Priority.MEDIUM);
+		}
+
+		private OutgoingMessage(String msg, Priority priority) {
+			this.priority = priority;
+			this.msg = msg + "\n";
+		}
+
+		public String getMessage() {
+			return msg;
+		}
+
+		public int compareTo( OutgoingMessage msg ) {
+			return this.priority.getValue() - msg.priority.getValue();
+		}
+	}
 	//connection thread
 	private class IrcConnection implements Runnable {
 
@@ -264,13 +313,6 @@ public class Connection {
 
 		private ByteBuffer out;
 
-		private long last_tx = 0;
-
-		private long last_rx = 0;
-
-		//max idle of 1.5 minutes...
-		private static final int max_idle = (int)(1000*60*1.5);
-
 		private IrcConnection() throws java.io.IOException {
 			conn  = SocketChannel.open();
 
@@ -284,9 +326,9 @@ public class Connection {
 			conn.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 
 			msg = CharBuffer.allocate(MSG_SIZE);
-
-
+	
 			last_tx = last_rx = System.currentTimeMillis();
+
 			connected = true;
 		}
 
@@ -324,8 +366,6 @@ public class Connection {
 		
 							//rudementary keepalive.
 							//@TODO
-							if ( (System.currentTimeMillis() - last_tx > max_idle) || (System.currentTimeMillis() - last_rx) > max_idle) 
-								send(keyChannel, "PING :"+hostname);
 
 							while ( sendQ.peek() != null )
 								send( keyChannel, sendQ.poll() );
@@ -351,17 +391,16 @@ public class Connection {
 //			System.out.println("STopped Running");
 		}
 
-		private void send(SocketChannel channel, String msg) {
+		private void send(SocketChannel channel, OutgoingMessage msg) {
 //			System.out.println("SEND :" + msg);
 
-			msg += "\n";
-			
+
 			//@TODO
-			if (msg.length() > MSG_SIZE)
+			if (msg.getMessage().length() > MSG_SIZE)
 				throw new RuntimeException("Command too large...");
 
-			ByteBuffer out = ByteBuffer.allocate(MSG_SIZE);
-			out.put(msg.getBytes());
+			ByteBuffer out = ByteBuffer.allocate(msg.getMessage().length());
+			out.put(msg.getMessage().getBytes());
 			out.flip();
 
 			try { //@TODO
@@ -369,6 +408,7 @@ public class Connection {
 					channel.write(out);
 
 				last_tx = System.currentTimeMillis();
+
 			} catch (java.io.IOException e) {
 				e.printStackTrace();
 			}
