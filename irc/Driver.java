@@ -1,8 +1,10 @@
+package irc;
+
 class Driver {
 	public static void main(String argv[]) {
 		System.out.println("Starting...");
 
-		Connection irc = new Irc("irc.jaundies.com", 6667, "fubar");
+		Connection irc = new Connection("irc.jaundies.com", 6667, "fubar");
 
 		System.out.println("Created new Irc object...");
 
@@ -10,8 +12,6 @@ class Driver {
 			irc.connect();
 
 			System.out.println("Connected");
-
-//			while(true) try { Thread.sleep(500); } catch (Exception e) { }
 
 		} catch (Exception e) {
 			System.out.println(e);
