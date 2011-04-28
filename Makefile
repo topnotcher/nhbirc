@@ -18,5 +18,4 @@ default: classes
 classes: $(SOURCES:.java=.class)
 
 clean:
-
-	$(RM) $(shell find . -name '*.class');
+	$(foreach var, $(shell find . -name '*.class'), $(RM) '$(var)';)
