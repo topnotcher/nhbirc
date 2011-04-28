@@ -91,8 +91,6 @@ public class Connection {
 		sendQ = new PriorityBlockingQueue<OutgoingMessage>();
 		recvQ = new PriorityBlockingQueue<Message>();
 	
-//		System.out.println("Creating a new IRC connection...");
-
 		//connect
 		//(blocks until connected)
 		conn = new IrcConnection();
@@ -111,15 +109,11 @@ public class Connection {
 
 		//initiatite registration
 		register();
-
-		//listen for IRC welcome message
-		String[] subs = { MessageCode.RPL_WELCOME.getCode() , "PING"};
-
+	
 		addMessageHandler(this.internalHandler)
-			.addType( MessageType.LOGIN )
 			.addType( MessageType.PING )
+			.or()
 			.addCode( MessageCode.RPL_WELCOME )
-			.addCommand( "PING" )
 		;
 
 		//This blocks while the connection is registering
@@ -199,7 +193,6 @@ public class Connection {
 		conn = null;
 	}
 
-
 	//handle a raw received message
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
@@ -238,11 +231,7 @@ public class Connection {
 	 * Provides a fluent interface...
 	 */
 	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
-
-		IrcMessageSubscription sub = new IrcMessageSubscription(handler); 
-		handlers.add( sub );
-
-		return sub;
+		return (new IrcMessageSubscription(handler)).register(); 
 	}
 
 	//a subscription to irc messages
@@ -308,10 +297,20 @@ public class Connection {
 			return this;
 		}
 
+		private IrcMessageSubscription register() {
+			handlers.add(this);
+			return this;
+		}
+
+		public IrcMessageSubscription or() {
+			return (new IrcMessageSubscription(this.handler)).register();
+		}
+
 		//tests if this subscription matches, calls the handlers handle if it does.
 		private void handle(Message msg) {
 
 			//Type must ALWAYS match...
+			//msg.getType() should NEVER return null.
 			if ( this.types != null && !types.contains( msg.getType() ) )
 				return;
 
@@ -319,7 +318,7 @@ public class Connection {
 			boolean codeMatches = true,
 					cmdMatches = true;
 
-			if ( this.codes != null && !codes.contains( msg.getCode() ) )
+			if ( this.codes != null && (msg.getCode() == null || !codes.contains( msg.getCode() )) )
 				codeMatches = false;
 
 		
@@ -362,10 +361,11 @@ public class Connection {
 	private MessageHandler internalHandler = new MessageHandler() {
 
 		public void handle(Message msg) {
+
 			if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
 				registered = true;
 				hostname = msg.getSource().getHost();
-			} else if ( msg.getCommand().equals("PING") )
+			} else if ( msg.getType() == MessageType.PING )
 
 				//preempt!
 				send( "PONG", msg.getMessage(), Priority.CRITICAL );
@@ -383,6 +383,7 @@ public class Connection {
 
 			while(true) {
 
+				//keepalives.
 				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2 ) 
 					ping();
 
