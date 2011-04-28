@@ -43,6 +43,7 @@ class Client extends JFrame {
 
 		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler(messageHandler);
+		new ClientServices(irc);
 
 		try {
 			//@TODO
