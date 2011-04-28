@@ -19,7 +19,11 @@ public class Message implements Comparable<Message> {
 
 	private String raw = "";
 
-	Message() {}
+	private long time;
+
+	Message() {
+		time = System.nanoTime();
+	}
 
 	/** 
 	 * Package private setters...
@@ -105,7 +109,11 @@ public class Message implements Comparable<Message> {
 	}
 
 	public int compareTo(Message m) {
-		return priority.getValue() - m.priority.getValue();
+		int val = priority.getValue() - m.priority.getValue();
+
+		if (val != 0) return val;
+
+		return (int)(time - m.time);
 	}
 
 /*
