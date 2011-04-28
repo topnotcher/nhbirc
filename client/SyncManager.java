@@ -1,10 +1,13 @@
+
+package client;
+
 import irc.*;
 
-public class ClientServices implements MessageHandler {
+public class SyncManager implements MessageHandler {
 
 	Connection irc;
 
-	public ClientServices( Connection irc ) {
+	public SyncManager( Connection irc ) {
 		this.irc = irc;
 		
 		irc.addMessageHandler(this)
