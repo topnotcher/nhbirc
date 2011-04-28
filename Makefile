@@ -17,5 +17,8 @@ default: classes
 
 classes: $(SOURCES:.java=.class)
 
+run: all
+	java Client
+
 clean:
 	$(foreach var, $(shell find . -name '*.class'), $(RM) '$(var)';)
