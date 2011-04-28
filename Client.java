@@ -5,6 +5,8 @@ import javax.swing.*;
 
 import irc.*;
 
+import java.util.List;
+
 class Client extends JFrame {
 
 	private Connection irc;
@@ -12,6 +14,8 @@ class Client extends JFrame {
 	private ChatWindow status, channel;
 
 	private JTabbedPane tabs;
+
+	private List<ChatWindow> windows;
 
 	public static void main(String[] argv) {
 		new Client();
@@ -29,6 +33,8 @@ class Client extends JFrame {
 
 		setTitle("Irc client");
 
+		windows = new util.LinkedList<ChatWindow>();
+
 		setVisible(true);
 
 		//tabs is the main viewport.
@@ -36,7 +42,6 @@ class Client extends JFrame {
 		add(tabs);
 
 		//tabs contain a status window.
-	//	status = new GUIConsole("Status");
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
 
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
@@ -54,18 +59,12 @@ class Client extends JFrame {
 			e.printStackTrace();
 		}
 
-		channel = new ChannelWindow(CHAN);
-
-		channel.addActionListener(commandListener);
-
-
-		add(channel);
-
 		irc.join( CHAN );
 	}
 
 	private void add(ChatWindow c) {
 		tabs.addTab(c.getName(), c.getContentPane());
+		windows.add(c);
 	}
 
 	/**
@@ -75,10 +74,27 @@ class Client extends JFrame {
 
 		//and put all PMS whether channel or private in one window...
 		public void handle(Message msg) {
-			if ( msg.getType() == MessageType.CHANNEL )
-				channel.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+
+			if ( msg.getType() == MessageType.CHANNEL ) {
+
+				for (ChatWindow c : windows) {
+					
+					if ( c.getType() == ChatWindow.Type.CHANNEL && c.getName().equals(msg.getTarget().getChannel()) )
+						c.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+
+				}
+
+			}
+
+			else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
+
+				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel() );
+				win.addActionListener(commandListener);				
+				add(win);
+			}
 
 			status.put( msg.getRaw() );	
+
 		}
 	};
 
@@ -87,8 +103,25 @@ class Client extends JFrame {
 	 */
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
-			irc.msg( CHAN, e.getActionCommand() );
-			channel.put("<" + irc.nick() + "> " + e.getActionCommand());
+			
+			//@TODO
+			if ( ! (e.getSource() instanceof ChatWindow) )  
+				throw new RuntimeException("Why am I receiving commands from a non-chat window???");
+
+			ChatWindow src = (ChatWindow)e.getSource();
+			String cmd = e.getActionCommand();
+
+			if ( src.getType() == ChatWindow.Type.STATUS ) {
+				int pos = cmd.indexOf(' ');
+				
+				if (pos == -1) return;
+
+				irc.send( cmd.substring(0,pos), cmd.substring(pos+1) );
+
+			} else {
+				irc.msg( src.getName() , e.getActionCommand() );
+				src.put("<" + irc.nick() + "> " + e.getActionCommand());
+			}
 		}
 	};
 }
