@@ -84,12 +84,22 @@ class MessageParser {
 			type = code.getType();
 
 		else {
-			if ( msg.startsWith("\u0001ACTION\u0001") )
+
+			/**
+			 * @TODO something is a little messed up in the ordering here
+			 * also for all CTCPS, strip the command, and set it to message.command
+			 */
+			if ( msg.startsWith("\u0001ACTION") && msg.endsWith("\u0001") ) {
 				type = MessageType.ACTION;
+
+				//strip the SOH wrappers and command from the CTCP
+				message.setMessage( msg.substring( msg.indexOf('\u0001')+7, msg.lastIndexOf('\u0001') ) );
+			}
 
 			else if ( command.equals("PRIVMSG") ) {
 				
-				if ( msg.startsWith("\u0001") ) {
+
+				if ( msg.startsWith("\u0001") && msg.endsWith("\u0001") ) {
 					type = MessageType.CTCP;
 					priority = Priority.LOW;
 				} 
