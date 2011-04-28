@@ -64,24 +64,24 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 	public void keyReleased(KeyEvent e) {
 		switch(e.getKeyCode()) {
 
-			case KeyEvent.VK_BACK_SPACE:
-				disable_backspace();
+//			case KeyEvent.VK_BACK_SPACE:
+//				disable_backspace();
 
-				break;
+//				break;
 
 			case KeyEvent.VK_ENTER:
 				readField();
 				//@TODO
 		
 				if ( listener != null ) {
-					Scanner sc = new Scanner(this);
-					listener.actionPerformed( new ActionEvent( this, 0, sc.nextLine()));
+					Scanner sc = new Scanner( this );
+					listener.actionPerformed( new ActionEvent( this, 0, sc.nextLine()) );
 				}
 
 				break;
 
 			case KeyEvent.VK_UP:
-				prompt(history.up());
+				prompt( history.up() );
 				break;
 
 			case KeyEvent.VK_DOWN:
@@ -107,7 +107,6 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 		//this is by no means fool proof...
 		if ( text.length() <= prompt.length() || prompt.length() < 1 || !text.substring(0, prompt.length()).equals(prompt) ) {
 			history.reset();
-//			System.out.println( "TEXT: '" + text.substring(0, prompt.length()-1) + "'");
 			prompt();
 		}
 	}
@@ -116,6 +115,8 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 	}
 
 	private void prompt(String append) {
+		prompt = append;
+
 		int len = (append == null || append.length() == 0) ? 0 : append.length();
 
 		field.setText(prompt + ((len == 0) ? "" : append));
@@ -254,7 +255,6 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 	 * set the text to show in the prompt
 	 */
 	public void setPrompt(String prompt) {
-		this.prompt = prompt;
 		prompt();
 	}
 

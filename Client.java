@@ -8,8 +8,8 @@ import irc.*;
 class Client extends JFrame {
 
 	private Connection irc;
-
-	private GUIConsole console,status;
+	
+	private ChatWindow status, channel;
 
 	private JTabbedPane tabs;
 
@@ -17,15 +17,12 @@ class Client extends JFrame {
 		new Client();
 	}
 
-
 	private final String CHAN = "#divinelunacy";
 
 	/**
 	 * **BASIC** prototype.
 	 */
 	private Client() {
-		getContentPane().setLayout(new BorderLayout());
-
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
 		setSize(800,800);
@@ -34,17 +31,20 @@ class Client extends JFrame {
 
 		setVisible(true);
 
-
-		status = new GUIConsole();
-
-
+		//tabs is the main viewport.
 		tabs = new JTabbedPane();
+		add(tabs);
+
+		//tabs contain a status window.
+	//	status = new GUIConsole("Status");
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
-		tabs.addTab("Status", status);
-		add(tabs,BorderLayout.CENTER);
+
+		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
+		
 
 		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler(messageHandler);
+
 		new ClientServices(irc);
 
 		try {
@@ -54,13 +54,18 @@ class Client extends JFrame {
 			e.printStackTrace();
 		}
 
+		channel = new ChannelWindow(CHAN);
 
-		console = new GUIConsole();
-		console.addActionListener(commandListener);
-	
-		tabs.addTab(CHAN, console);
+		channel.addActionListener(commandListener);
+
+
+		add(channel);
 
 		irc.join( CHAN );
+	}
+
+	private void add(ChatWindow c) {
+		tabs.addTab(c.getName(), c.getContentPane());
 	}
 
 	/**
@@ -71,9 +76,9 @@ class Client extends JFrame {
 		//and put all PMS whether channel or private in one window...
 		public void handle(Message msg) {
 			if ( msg.getType() == MessageType.CHANNEL )
-				console.out().println( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+				channel.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
 
-			status.out().println( msg.getRaw() );	
+			status.put( msg.getRaw() );	
 		}
 	};
 
@@ -83,7 +88,7 @@ class Client extends JFrame {
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
 			irc.msg( CHAN, e.getActionCommand() );
-			console.out().println("<" + irc.nick() + "> " + e.getActionCommand());
+			channel.put("<" + irc.nick() + "> " + e.getActionCommand());
 		}
 	};
 }
