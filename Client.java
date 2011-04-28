@@ -24,7 +24,7 @@ class Client extends JFrame {
 	 * **BASIC** prototype.
 	 */
 	private Client() {
-		getContentPane().setLayout(new BorderLayout());
+//		getContentPane().setLayout(new BorderLayout());
 
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
@@ -34,17 +34,18 @@ class Client extends JFrame {
 
 		setVisible(true);
 
-
-		status = new GUIConsole();
-
-
+		//tabs is the main viewport.
 		tabs = new JTabbedPane();
+		add(tabs);
+
+		//tabs contain a status window.
+		status = new GUIConsole();
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
 		tabs.addTab("Status", status);
-		add(tabs,BorderLayout.CENTER);
 
 		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler(messageHandler);
+
 		new ClientServices(irc);
 
 		try {
@@ -55,10 +56,25 @@ class Client extends JFrame {
 		}
 
 
+		//a channel window is a split pane...
+		JSplitPane chan = new JSplitPane( JSplitPane.HORIZONTAL_SPLIT) ;
+
+
+		//the left of the split pane is the console
 		console = new GUIConsole();
 		console.addActionListener(commandListener);
+
+		chan.setLeftComponent(console);
+
+		String[] test = {"User1", "user2", "user3","reallylongname"};
+		chan.setRightComponent(new JList(test));
+
+		//favor the left side???
+		chan.setResizeWeight(1.0);
+
 	
-		tabs.addTab(CHAN, console);
+		//add the channel to the tabs.
+		tabs.addTab(CHAN, chan);
 
 		irc.join( CHAN );
 	}
