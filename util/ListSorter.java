@@ -1,8 +1,4 @@
-/**
- * Greg Bowser
- * CSC212, Program 04
- * 31 March 2011
- */
+package util;
 
 import java.util.ListIterator;
 import java.util.AbstractList;
