@@ -135,17 +135,6 @@ public class Connection {
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
 
-	/**
-	 * Provides a fluent interface...
-	 */
-	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
-
-		IrcMessageSubscription sub = new IrcMessageSubscription(handler); 
-		handlers.add( sub );
-
-		return sub;
-	}
-
 	//initiate registration
 	private void register() {
 		sendRaw("NICK " +nick);
@@ -161,6 +150,55 @@ public class Connection {
 			
 		send("PING", hostname, Priority.CRITICAL);
 	}
+
+	/**
+	 * Issue the nick command...
+	 */
+	public void nick(String nick) {
+		//send the nick command...	
+		send("NICK", nick);
+
+		this.nick = nick;
+
+		//@TODO monitor for failed nick changes.
+		//only set the nick on a successful reply...
+	}
+
+	public void join(String chan) {
+		send("JOIN", chan);
+	}
+
+	public void msg(String target, String msg) {
+		msg(target, msg, Priority.MEDIUM);
+	}
+
+	public void msg(String target, String msg, Priority p) {
+		send("PRIVMSG " + target, msg, p);
+	}
+
+	public void notice(String target, String msg) {
+		notice(target, msg, Priority.MEDIUM);
+	}
+
+	public void notice(String target, String msg, Priority p) {
+		notice("PRIVMSG " + target, msg, p);
+	}
+
+
+	public String nick() {
+		return this.nick;
+	}
+
+	public void quit() {
+		quit("Client exited.");
+	}
+
+	public void quit(String msg) {
+		send("QUIT", msg);
+		conn.close();
+		conn = null;
+	}
+
 
 	//handle a raw received message
 	private void handleRaw(String raw) {
@@ -192,29 +230,19 @@ public class Connection {
 
 	}
 
+
+
+
+
 	/**
-	 * Issue the nick command...
+	 * Provides a fluent interface...
 	 */
-	public void setNick(String nick) {
-		//send the nick command...	
-		sendRaw("NICK :"+nick);
-		this.nick = nick;
+	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
 
-		//@TODO monitor for failed nick changes.
-		//only set the nick on a successful reply...
-	}
+		IrcMessageSubscription sub = new IrcMessageSubscription(handler); 
+		handlers.add( sub );
 
-	public String getNick() {
-		return this.nick;
-	}
-	public void quit() {
-		quit("Client exited.");
-	}
-
-	public void quit(String msg) {
-		send("QUIT", msg);
-		conn.close();
-		conn = null;
+		return sub;
 	}
 
 	//a subscription to irc messages

@@ -18,6 +18,8 @@ class Client extends JFrame {
 	}
 
 
+	private final String CHAN = "#divinelunacy";
+
 	/**
 	 * **BASIC** prototype.
 	 */
@@ -56,10 +58,9 @@ class Client extends JFrame {
 		console = new GUIConsole();
 		console.addActionListener(commandListener);
 	
-		tabs.addTab("#divinelunacy", console);
+		tabs.addTab(CHAN, console);
 
-		//a Channel I think might be active
-		irc.send("JOIN", "#divinelunacy");
+		irc.join( CHAN );
 	}
 
 	/**
@@ -81,8 +82,8 @@ class Client extends JFrame {
 	 */
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
-			irc.send("PRIVMSG #divinelunacy", e.getActionCommand());
-			console.out().println("<" + irc.getNick() + "> " + e.getActionCommand());
+			irc.msg( CHAN, e.getActionCommand() );
+			console.out().println("<" + irc.nick() + "> " + e.getActionCommand());
 		}
 	};
 }
