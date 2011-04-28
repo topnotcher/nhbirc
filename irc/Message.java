@@ -17,6 +17,8 @@ public class Message implements Comparable<Message> {
 
 	private MessageType type;
 
+	private String raw = "";
+
 	Message() {}
 
 	/** 
@@ -54,6 +56,10 @@ public class Message implements Comparable<Message> {
 		this.type = type;
 	}
 
+	void setRaw(String raw) {
+		this.raw = raw;
+	}
+
 	public int numArgs() {
 		return args.length;
 	}
@@ -72,6 +78,10 @@ public class Message implements Comparable<Message> {
 
 	public String getMessage() {
 		return msg;
+	}
+
+	public String getRaw() {
+		return raw;
 	}
 
 	public MessageTarget getSource() {

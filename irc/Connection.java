@@ -54,8 +54,13 @@ public class Connection {
 
 	private long last_rx = 0;
 
-		//max idle of 1.5 minutes...
-	private static final int MAX_IDLE = (int)(1000*60*1.5);
+	private long last_ping;
+
+	//minimum time between pings = 30 seconds...
+	private static final int PING_TIMEOUT = 30000;
+
+	//max idle of 1.5 minutes...
+	private static final int MAX_IDLE = 1000*60*3;
 
 
 	public Connection(String host, int port, String nick) {
@@ -121,6 +126,10 @@ public class Connection {
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
 
+	public void addMessageHandler(MessageHandler handler) {
+		handlers.add( new IrcMessageSubscription(null, handler));
+	}
+
 	//handle a single command
 	public void addMessageHandler(String cmd, MessageHandler handler) {
 		String[] cmds = {cmd};
@@ -140,24 +149,22 @@ public class Connection {
 		sendRaw("USER " + user + " 0 * : " + real);
 	}
 
+	private void ping() {
+
+		if ( System.currentTimeMillis() - last_ping <= PING_TIMEOUT )
+			return;
+
+		last_ping = System.currentTimeMillis();
+			
+		send("PING", hostname, Priority.CRITICAL);
+	}
 
 	//handle a raw received message
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
-
-		Message msg = MessageParser.parse( raw );
 	
-		//temp ping impl
-		//@TODO: parser with priorities
-//		if ( msg.getCommand().equals("PING") ) {
-//			send("PONG", msg.getMessage());
-//		}
+		recvQ.offer( MessageParser.parse( raw ) );
 
-		//if it isn't a ping queue it
-//		else
-			recvQ.offer(msg);
-
-//		System.out.println("RECV " + raw);
 	}
 
 	//public send
@@ -220,6 +227,12 @@ public class Connection {
 
 		//tests if this subscription matches, calls the handlers handle if it does.
 		public void handle(Message msg) {
+			//speshul
+			if ( cmds == null) {
+				handler.handle(msg);
+				return;
+			}
+
 			for ( String cmd : cmds ) 
 				if (cmd.equals(msg.getCommand())) 
 					handler.handle(msg);
@@ -252,9 +265,8 @@ public class Connection {
 
 			while(true) {
 
-				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE) || (System.currentTimeMillis() - last_rx) > MAX_IDLE) 
-					send("PING", nick, Priority.CRITICAL);
-
+				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2 ) 
+					ping();
 
 				while ( recvQ.peek() != null ) { 
 

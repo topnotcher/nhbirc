@@ -12,6 +12,8 @@ class MessageParser {
 
 		Message message = new Message();
 
+		message.setRaw(msg);
+
 		Vector<String> args = new Vector<String>(2);
 
 		String trailing = null;
@@ -92,7 +94,7 @@ class MessageParser {
 					priority = Priority.LOW;
 				} 
 
-				else if (args.size() >= 2 && args.get(2).startsWith("#")) 
+				else if (args.size() >= 2 && args.get(1).startsWith("#")) 
 					type = MessageType.CHANNEL;
 
 				else 

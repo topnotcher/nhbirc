@@ -79,11 +79,13 @@ public class GUIConsole extends Panel implements MouseListener {
 		//Green on black is the ONLY color for a terminal.
 		textout.area.setBackground(Color.black);
 		textout.area.setForeground(Color.green);
-		in.field.setBackground(Color.black);
-		in.field.setForeground(Color.green);
+//		in.field.setBackground(Color.black);
+//		in.field.setForeground(Color.green);
 
 		//and of course monospace...
 		setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+		prompt("");
 	}
 	
 	public void addActionListener(ActionListener l) {
@@ -104,7 +106,7 @@ public class GUIConsole extends Panel implements MouseListener {
 
 	public void setFont(Font f) {
 		area.setFont(f);
-		field.setFont(f);
+//		field.setFont(f);
 	}
 	public void prompt(String prompt) {
 		in.setPrompt(prompt);

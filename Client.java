@@ -1,6 +1,7 @@
 
 import java.awt.BorderLayout;
-import javax.swing.JFrame;
+//import javax.swing.JFrame;
+import javax.swing.*;
 
 import irc.*;
 
@@ -8,7 +9,9 @@ class Client extends JFrame {
 
 	private Connection irc;
 
-	private GUIConsole console;
+	private GUIConsole console,status;
+
+	private JTabbedPane tabs;
 
 	public static void main(String[] argv) {
 		new Client();
@@ -21,13 +24,25 @@ class Client extends JFrame {
 	private Client() {
 		getContentPane().setLayout(new BorderLayout());
 
-		irc = new Connection("irc.jaundies.com", 6667, "FUBAR");
+		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
 		setSize(800,800);
 
 		setTitle("Irc client");
 
 		setVisible(true);
+
+
+		status = new GUIConsole();
+
+
+		tabs = new JTabbedPane();
+		tabs.setTabPlacement(JTabbedPane.BOTTOM);
+		tabs.addTab("Status", status);
+		add(tabs,BorderLayout.CENTER);
+
+		//prototyping purposes, just receive ALL Pms
+		irc.addMessageHandler(messageHandler);
 
 		try {
 			//@TODO
@@ -36,16 +51,11 @@ class Client extends JFrame {
 			e.printStackTrace();
 		}
 
+
 		console = new GUIConsole();
-
-
-		add(console,BorderLayout.CENTER);
-	
-
 		console.addActionListener(commandListener);
-		
-		//prototyping purposes, just receive ALL Pms
-		irc.addMessageHandler("PRIVMSG", messageHandler);
+	
+		tabs.addTab("#divinelunacy", console);
 
 		//a Channel I think might be active
 		irc.send("JOIN", "#divinelunacy");
@@ -55,9 +65,13 @@ class Client extends JFrame {
 	 * for prototyping, just send all privmsgs to a window...
 	 */
 	private MessageHandler messageHandler = new MessageHandler() {
+
 		//and put all PMS whether channel or private in one window...
 		public void handle(Message msg) {
-			console.out().println( "<" + msg.getSource() + "> " + msg.getMessage() );
+			if ( msg.getType() == MessageType.CHANNEL )
+				console.out().println( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+
+			status.out().println( msg.getRaw() );	
 		}
 	};
 
