@@ -39,8 +39,9 @@ class Client extends JFrame {
 		add(tabs);
 
 		//tabs contain a status window.
-		status = new GUIConsole();
+		status = new GUIConsole("Status");
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
+
 		tabs.addTab("Status", status);
 
 		//prototyping purposes, just receive ALL Pms
@@ -61,7 +62,7 @@ class Client extends JFrame {
 
 
 		//the left of the split pane is the console
-		console = new GUIConsole();
+		console = new GUIConsole(CHAN);
 		console.addActionListener(commandListener);
 
 		chan.setLeftComponent(console);

@@ -50,25 +50,22 @@ public class GUIConsole extends JPanel implements MouseListener {
 
 
 	public GUIConsole() {
+		this("");
+	}
+
+	public GUIConsole( String name ) {
 
 		//BorderLayout makes for an easy console layout
 		//although it's probably a little bloated for this simple purpose
 		super(new BorderLayout());
-//		getContentPane().setLayout(new BorderLayout());
-
-		System.out.println("CONSTRUCTING...");
+	
+		System.out.println("HAI");
 
 		//OutputStream that appends output to a textarea
 		TextAreaOutput textout = new TextAreaOutput();
 
 		//the textarea being appended to
 		area = textout.area;
-
-		if (area != null)
-			System.out.println("CONSTRUCT: AREA IS NOT NULL");
-		else 
-			System.out.println("CONSTRUCT: AREA IS NULL");
-
 
 		//listen to the mouse
 		area.addMouseListener(this);
@@ -89,7 +86,7 @@ public class GUIConsole extends JPanel implements MouseListener {
 	
 		JPanel input = new JPanel( layout );
 
-		javax.swing.JLabel label = new javax.swing.JLabel("Something here");
+		javax.swing.JLabel label = new javax.swing.JLabel( name );
 
 		input.add(label);
 		input.add(in.field);
@@ -109,13 +106,12 @@ public class GUIConsole extends JPanel implements MouseListener {
 		//Green on black is the ONLY color for a terminal.
 		textout.area.setBackground(Color.black);
 		textout.area.setForeground(Color.green);
+
 //		in.field.setBackground(Color.black);
 //		in.field.setForeground(Color.green);
 
 		//and of course monospace...
 		setFontReal(new Font("Monospaced", Font.PLAIN, 12));
-
-		prompt(" >>> ");
 	}
 	
 	public void addActionListener(ActionListener l) {
