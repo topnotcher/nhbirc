@@ -64,6 +64,12 @@ public class SyncManager implements MessageHandler {
 	}
 
 	private void handleNames(Message m) {
+
+		if ( m.getCode() == MessageCode.RPL_ENDOFNAMES ) {
+			getChannel( m.getArg(2) ).usersChanged();
+			return;
+		}
+
 		Channel c = getChannel( m.getArg(3) );
 
 		StringTokenizer st = new StringTokenizer( m.getMessage(), " ");
