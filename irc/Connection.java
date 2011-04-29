@@ -146,10 +146,8 @@ public class Connection {
 			}
 
 		} catch (InterruptedException e) {
-			e.printStackTrace();
 		}
 
-			
 		if ( state != state.REGISTERED )
 			throw new RuntimeException("REGISTER timeout after 30 seconds");
 
