@@ -76,6 +76,11 @@ class Client extends JFrame {
 
 	}
 
+	private void remove(ChatWindow c) {
+		tabs.remove(c.getContentPane());
+		windows.remove(c);
+	}
+
 	private void add(ChatWindow c) {
 		tabs.addTab(c.getName(), c.getContentPane());
 		windows.add(c);
@@ -93,15 +98,36 @@ class Client extends JFrame {
 
 				for (ChatWindow c : windows) {
 					
-					if ( c.getType() == ChatWindow.Type.CHANNEL && c.getName().equals(msg.getTarget().getChannel()) )
+					if ( c.getType() == ChatWindow.Type.CHANNEL && c.getName().equals(msg.getTarget().getChannel()) ) {
 						c.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+						break;
+					}
 
 				}
 
-			}
+			} else if ( msg.getType() == MessageType.PART ) {
 
-			else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
+				ChatWindow window = null;
 
+				for (ChatWindow w : windows) {
+					if ( w.getType() == ChatWindow.Type.CHANNEL && w.getName().equals(msg.getTarget().getChannel())) {
+						window = w;
+						break;
+					}
+				}
+
+				if ( window != null ) {
+			
+					//this is ME leaving...
+					if ( msg.getSource().getNick().equals( irc.nick() ) ) 
+						remove(window);
+
+					else 
+						window.put(" <-- " + msg.getSource().getNick() + " left the channel");
+				}
+				
+	
+			} else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
 				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel(), sync );
 				win.addActionListener(commandListener);				
 				add(win);
