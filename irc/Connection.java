@@ -1,9 +1,7 @@
 package irc;
 
-import java.nio.channels.SocketChannel;
-import java.nio.channels.Selector;
-import java.nio.channels.SelectionKey;
-import java.net.InetSocketAddress;
+import java.net.Socket;
+
 import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -19,6 +17,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
+
+
 
 public class Connection {
 	
@@ -364,7 +364,6 @@ public class Connection {
 				registered = true;
 				hostname = msg.getSource().getHost();
 			} else if ( msg.getType() == MessageType.PING )
-				System.out.println("****GOT PING");
 				//preempt!
 				send( "PONG", msg.getMessage(), Priority.CRITICAL );
 		}
@@ -380,10 +379,6 @@ public class Connection {
 		public void run() {
 
 			while(true) {
-
-				//keepalives.
-				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2 ) 
-					ping();
 
 				System.out.println("***Worker loop");
 				Message msg = null;
@@ -405,6 +400,9 @@ public class Connection {
 					//TODO need a way to handle these...
 					e.printStackTrace();
 				}
+
+				//keepalives.
+				if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) ping();
 			}
 		}
 	}
@@ -420,7 +418,7 @@ public class Connection {
 
 		private OutgoingMessage(String msg, Priority priority) {
 			this.priority = priority;
-			this.msg = msg + "\n";
+			this.msg = msg;// + "\r\n";
 		}
 
 		public String getMessage() {
@@ -437,34 +435,20 @@ public class Connection {
 		//per RFC, max size of irc message...
 		private static final int MSG_SIZE = 512;
 
-		private SocketChannel conn = null;
+		private Socket conn = null;
+		private PrintWriter out;
+		private BufferedReader in;
 
 		private boolean connected = false;
 
-		private Selector readSelect;
-
-		private Selector writeSelect;
-
-		private CharBuffer msg;
-
-		private ByteBuffer out;
 
 		private IrcConnection() throws java.io.IOException {
-			conn  = SocketChannel.open();
 
-			conn.connect(new InetSocketAddress(host,port));	
+			conn = new java.net.Socket(host,port);
 
-			//socket is connected, set to non-blocking.
-			conn.configureBlocking(false);
-			
-			writeSelect = Selector.open();
-			readSelect = Selector.open();
+			out = new PrintWriter( conn.getOutputStream(), false );
+			in = new BufferedReader( new InputStreamReader( conn.getInputStream() ) );
 
-			conn.register( readSelect, SelectionKey.OP_READ );
-			conn.register( writeSelect, SelectionKey.OP_WRITE );
-
-			msg = CharBuffer.allocate(MSG_SIZE);
-	
 			last_tx = last_rx = System.currentTimeMillis();
 
 			connected = true;
@@ -484,25 +468,9 @@ public class Connection {
 					throw new RuntimeException("Trying to loop over non connection???");
 	
 				while(connected) try {	
-
 					System.out.println("***Reader loop");
-
-					//block until there is data...
-					readSelect.select();
 					
-					Iterator<SelectionKey> keys = readSelect.selectedKeys().iterator();
-
-					while ( keys.hasNext() ) {
-
-						SelectionKey key = keys.next();
-						SocketChannel keyChannel = (SocketChannel)key.channel();
-
-						keys.remove();
-
-						if ( key.isReadable() ) 
-							recv( keyChannel );
-					}
-
+					recv( in.readLine() );
 		
 				} catch (Exception e) {
 					//@TODO
@@ -524,28 +492,7 @@ public class Connection {
 				while(connected) try {	
 
 					System.out.println("***Writer loop");
-
-					//block until there is data...
-					writeSelect.select();
-					
-					Iterator<SelectionKey> keys = writeSelect.selectedKeys().iterator();
-
-					while ( keys.hasNext() ) {
-
-						SelectionKey key = keys.next();
-						SocketChannel keyChannel = (SocketChannel)key.channel();
-
-						keys.remove();
-
-						if ( key.isWritable() ) try {
-						
-							send(keyChannel,sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS));
-							
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-
+					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
 		
 				} catch (Exception e) {
 					//@TODO
@@ -554,79 +501,23 @@ public class Connection {
 			}
 		};
 
-	
-
-		private void send(SocketChannel channel, OutgoingMessage msg) {
+		private void sendMsg(OutgoingMessage msg) {
 
 			if (msg == null) return;
 
-			//@TODO
-			if (msg.getMessage().length() > MSG_SIZE)
-				throw new RuntimeException("Command too large...");
-
-			ByteBuffer out = ByteBuffer.allocate(msg.getMessage().length());
-			out.put(msg.getMessage().getBytes());
-			out.flip();
-
-			try { //@TODO
-				while (out.hasRemaining())
-					channel.write(out);
-
-				last_tx = System.currentTimeMillis();
-
-			} catch (java.io.IOException e) {
-				e.printStackTrace();
-			}
-
+			System.out.println("SEND " + msg.getMessage());
+			out.print( msg.getMessage() );
+			out.print( "\r\n" );
+			out.flush();
 		}
 
 		/**
 		 * Receives/buffers any data on the channel
 		 */
-		private void recv(SocketChannel channel) {
+		private void recv(String msg) {
+			if (msg == null) return;
 
-			char tmp;
-
-			//@TODO fix all of this.
-			ByteBuffer in = ByteBuffer.allocate(MSG_SIZE);
-
-			java.nio.charset.Charset charset = java.nio.charset.Charset.forName("ISO-8859-1");
-			java.nio.charset.CharsetDecoder decoder = charset.newDecoder();
-			java.nio.CharBuffer cBuf;
-
-			try {
-				channel.read(in);
-				in.flip();
-				
-				//create a character buffer from the bytes read.
-				cBuf = decoder.decode(in);
-
-				
-				//for each character in the buffer
-				while ( cBuf.remaining() > 0 &&  ( tmp = cBuf.get() ) != '\0' ) {
-					
-					//if it is a 'newline' (RFC says either of these suffices), end the command.
-					if (tmp == '\r' || tmp == '\n') {
-
-						int pos = msg.position();
-						msg.clear();
-
-						last_rx = System.currentTimeMillis();
-
-						//because clearing the buffer just resets the position, so if we 
-						//don't take the correct subseq, old data from the last command will be passed.
-						handleRaw( msg.subSequence(0,pos).toString() );
-					}
-					else {
-						///otherwise, put teh character on the buffer.
-						msg.put(tmp);
-					}
-				}
-
-			} catch (java.io.IOException e) {
-				e.printStackTrace();
-			}
-
+			handleRaw(msg);
 		}
 
 		public void close() {
@@ -636,7 +527,7 @@ public class Connection {
 
 			try {
 				//should socket be set to block first?
-				conn.socket().close();
+				conn.close();
 			} catch (Exception e) {
 				//@TODO
 				e.printStackTrace();
