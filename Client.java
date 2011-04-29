@@ -61,6 +61,19 @@ class Client extends JFrame {
 		}
 
 		irc.join( CHAN );
+
+		System.out.println("Thread is going to sleep...");
+
+		synchronized(irc) {
+			try {
+				irc.wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		System.out.println("IRC changed it's state... goodbye.");
+
 	}
 
 	private void add(ChatWindow c) {

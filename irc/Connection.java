@@ -1,27 +1,43 @@
 package irc;
 
 import java.net.Socket;
-
 import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-//import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.PriorityBlockingQueue;
 
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.nio.ByteBuffer;
+
 import java.util.Iterator;
-import java.nio.CharBuffer;
 import java.util.List;
 
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
-
-
+/**
+ */
 public class Connection {
-	
+
+	public enum State {
+		DISCONNECTED(0),
+		CONNECTED(1),
+		REGISTERED(2);
+
+		private int code;
+
+		State(int code) {
+			this.code = code;
+		}
+	}
+
+	//minimum time between pings = 30 seconds...
+	private static final int PING_TIMEOUT = 30000;
+
+	//max idle of 1.5 minutes...
+	private static final int MAX_IDLE = 1000*60*3;
+
+
 	/**
 	 * Server for the IRC connection
 	 */
@@ -49,7 +65,7 @@ public class Connection {
 	
 	//whether or not registration phase of connection is complete
 	//(no non-registration commands can be sent until this is done)
-	private boolean registered = false;
+	private State state;
 
 	//how the server identifies itself in the 001
 	private String hostname = "none";
@@ -58,13 +74,7 @@ public class Connection {
 
 	private long last_rx = 0;
 
-	private long last_ping;
-
-	//minimum time between pings = 30 seconds...
-	private static final int PING_TIMEOUT = 30000;
-
-	//max idle of 1.5 minutes...
-	private static final int MAX_IDLE = 1000*60*3;
+	private long last_ping = 0;
 
 
 	public Connection(String host, int port, String nick) {
@@ -82,6 +92,16 @@ public class Connection {
 		this.nick = nick;
 		this.user = user;
 		this.real = real;
+
+		state = State.DISCONNECTED;
+	}
+
+	private void setState(State ns) {
+		state = ns;
+
+		synchronized(this) {
+			notifyAll();
+		}
 	}
 
 	//attempt to connect
@@ -111,18 +131,27 @@ public class Connection {
 
 		;
 
+		//@TODO
+		if ( state != State.CONNECTED )
+			throw new RuntimeException("Connection is not connected!");
+
 		//initiatite registration
 		register();
 
-		//This blocks while the connection is registering
-		//@TODO timeout...
-		while (!registered) {
-			try {
-				Thread.sleep(200);
-			} catch (InterruptedException e) {
-			
+		try {
+
+			//wait until this changes its state..
+			synchronized(this) {
+				this.wait(30000); 
 			}
+
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
+
+			
+		if ( state != state.REGISTERED )
+			throw new RuntimeException("REGISTER timeout after 30 seconds");
 
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
@@ -220,8 +249,6 @@ public class Connection {
 			throw new RuntimeException("Failed to queue message: " + cmd);
 
 	}
-
-
 
 
 
@@ -361,7 +388,8 @@ public class Connection {
 		public void handle(Message msg) {
 
 			if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
-				registered = true;
+				setState(State.REGISTERED);
+
 				hostname = msg.getSource().getHost();
 			} else if ( msg.getType() == MessageType.PING )
 				//preempt!
@@ -372,9 +400,7 @@ public class Connection {
 	//message handler thread
 	private class Worker implements Runnable {
 
-		private Worker() {
-	
-		}
+		private Worker() {}
 
 		public void run() {
 
@@ -384,12 +410,12 @@ public class Connection {
 				Message msg = null;
 
 				try {
-						msg = recvQ.poll(PING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS);
+					msg = recvQ.poll(PING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
 					System.out.println("INTERRUPT");
 				}
 
-					//nothing to do
+				//nothing to do
 				if (msg == null) continue;
 
 				Iterator<IrcMessageSubscription> it = handlers.iterator();
@@ -401,7 +427,8 @@ public class Connection {
 					e.printStackTrace();
 				}
 
-				//keepalives.
+				//We do this after the loop...
+				//don't bother checkuing until a message been sent...
 				if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) ping();
 			}
 		}
@@ -439,9 +466,6 @@ public class Connection {
 		private PrintWriter out;
 		private BufferedReader in;
 
-		private boolean connected = false;
-
-
 		private IrcConnection() throws java.io.IOException {
 
 			conn = new java.net.Socket(host,port);
@@ -451,8 +475,9 @@ public class Connection {
 
 			last_tx = last_rx = System.currentTimeMillis();
 
-			connected = true;
-
+			//setting state = connected starts all the fun loops..
+			setState(state.CONNECTED);
+			
 			(new Thread( readerThread, "Socket Read" )).start();
 			(new Thread( writerThread, "Socket Write" )).start();
 		}
@@ -464,10 +489,10 @@ public class Connection {
 			 */
 			public void run() {
 			
-				if (connected == false) 
+				if ( state == State.DISCONNECTED ) 
 					throw new RuntimeException("Trying to loop over non connection???");
 	
-				while(connected) try {	
+				while ( state != State.DISCONNECTED ) try {	
 					System.out.println("***Reader loop");
 					
 					recv( in.readLine() );
@@ -486,10 +511,10 @@ public class Connection {
 			 */
 			public void run() {
 			
-				if (connected == false) 
+				if ( state == State.DISCONNECTED ) 
 					throw new RuntimeException("Trying to loop over non connection???");
 	
-				while(connected) try {	
+				while( state != State.DISCONNECTED ) try {	
 
 					System.out.println("***Writer loop");
 					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
@@ -521,9 +546,9 @@ public class Connection {
 		}
 
 		public void close() {
-			
-			//stop the thread from looping.
-			connected = false;
+
+			//stop everything from looping
+			setState(State.DISCONNECTED);
 
 			try {
 				//should socket be set to block first?
@@ -535,7 +560,11 @@ public class Connection {
 		}
 
 		protected void finalize() {
-			close();
+			if ( state == State.REGISTERED ) {
+				quit();
+			}
+			else 
+				close();
 		}
 	}
 }
