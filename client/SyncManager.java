@@ -34,10 +34,13 @@ public class SyncManager implements MessageHandler {
 
 		System.out.println(m.getRaw());
 
-		switch ( m.getType() ) {
+		User user;
 
+		switch ( m.getType() ) {
+			
 			case JOIN:
-				handleJoin(m);
+				print( m.getSource() + " JOINS " + m.getTarget() );
+				getUserFromTarget( m.getSource() ).join( getChannel(m.getTarget().getChannel()) );
 				break;
 
 			case NAME:
@@ -45,27 +48,41 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			case NICKCHANGE:
+				user = getUserFromTarget( m.getSource() );
 
-				for ( Channel channel : getUserFromTarget( m.getSource() ).getChannels() ) 
-					channel.usersChanged();
+				//remove the user from the hashmap
+				users.remove( user.getNick() );
+
+				//change the nick, notify the channels
+				user.nick( m.getTarget().getNick() );
+		
+				//readd the user with the new nick
+				users.put( user.getNick(), user );
 
 				print( m.getSource() +" CHANGES NICK TO "+ m.getTarget() );
 				break;
 
 			case QUIT:
 				print(m.getSource() + " QUITS ("+m.getMessage()+")");
-			
-				User user = getUserFromTarget(m.getSource());
 
-				for (Channel channel : user.getChannels() )
-					channel.delUser(user);
+				user = getUserFromTarget(m.getSource());
+				user.quit();
+
+				users.remove( user.getNick() );
 
 				break;
 
+			//@TODO: when I part, remove the channel, then loop through the channels users
+			//and remove all the users from that channel.
+			//if a user is in 0 channels, then remove the user from the hash map...
 			case PART:
 				print(m.getSource() + " PARTS " + m.getTarget() + " (" + m.getMessage() + ")" );
 
-				getChannel( m.getTarget().getChannel() ).delUser( getUserFromTarget(m.getSource()) );
+				user = getUserFromTarget(m.getSource());
+				user.part( getChannel( m.getTarget().getChannel() ) );
+
+				if (user.numChannels() == 0)
+					users.remove(user.getNick());
 				break;
 
 			default:
@@ -108,15 +125,6 @@ public class SyncManager implements MessageHandler {
 		}
 
 		c.addUsers(names);
-	}
-
-	private void handleJoin(Message m) {
-		print( m.getSource() + " JOINS " + m.getTarget() );
-
-		Channel c = getChannel(m.getTarget().getChannel());
-
-		getUserFromTarget( m.getSource() ).join(c);
-			
 	}
 
 	public User getUser(String nick) {

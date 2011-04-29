@@ -39,8 +39,8 @@ public class User implements Comparable<User> {
 		return this.host;
 	}
 
-	public String setNick() {
-		return nick;	
+	public void setNick(String nick) {
+		this.nick = nick;
 	}
 
 	public void setHost(String host) {
@@ -61,17 +61,38 @@ public class User implements Comparable<User> {
 	}
 
 	void addChannel(Channel c) {
-		this.channels.add(c);
+
+		for (Channel channel : channels) 
+			if (c.equals(channel))
+				return;
+				
+		channels.add(c);
 	}
 
 	public int numChannels() {
 		return channels.size();
 	}
 
+	public void nick(String nick) {
+		this.nick = nick;
+
+		for (Channel channel: channels)
+			channel.usersChanged();
+	}
+
+	public void quit() {
+		for (Channel channel : channels) 
+			channel.delUser(this);
+	}
+
 	public void part(Channel c) {
 		c.delUser(this);
 
-		channels.remove(c);
+		for (Channel channel : channels) 
+			if (c.equals(channel)) {
+				channels.remove(c);
+				return;
+			}
 	}
 	
 	public boolean equals(User u) {
