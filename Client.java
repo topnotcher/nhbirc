@@ -17,6 +17,8 @@ class Client extends JFrame {
 
 	private List<ChatWindow> windows;
 
+	private client.SyncManager sync;
+
 	public static void main(String[] argv) {
 		new Client();
 	}
@@ -45,12 +47,11 @@ class Client extends JFrame {
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
 
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
-		
+
+		sync = new client.SyncManager(irc);
 
 		//prototyping purposes, just receive ALL Pms
 		irc.addMessageHandler(messageHandler);
-
-		new ClientServices(irc);
 
 		try {
 			//@TODO
@@ -88,7 +89,7 @@ class Client extends JFrame {
 
 			else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
 
-				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel() );
+				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel(), sync );
 				win.addActionListener(commandListener);				
 				add(win);
 			}

@@ -46,11 +46,17 @@ class MessageParser {
 		else 
 			message.setSource( new MessageTarget() );
 
+//353 fubar = #divinelunacy :
 		if ( args.size() >= 2 ) {
 			String t = args.get(1);
+	
+/*			if ( args.size() >= 4 ) {
+				String tmp = args.get(2);
 
-			if (t.equals("=") || t.equals("*"))
-				t = args.get(2);
+				if (tmp.equals("=") || tmp.equals("*"))
+					t = args.get(3);
+			}
+*/
 
 			message.setTarget( new MessageTarget( t ) );
 		}
@@ -124,6 +130,9 @@ class MessageParser {
 				//VIA rfc2812, servers shouldn't use a CSV list
 				//when sending JOINs to clients (e.g. this is valid)
 				message.setTarget( new MessageTarget( message.getMessage() ) );
+
+				priority = Priority.HIGH;
+
 			}
 
 			else if ( command.equals("TOPIC") )
