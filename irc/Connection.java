@@ -404,7 +404,6 @@ public class Connection {
 
 			while(true) {
 
-				System.out.println("***Worker loop");
 				Message msg = null;
 
 				try {
@@ -491,7 +490,6 @@ public class Connection {
 					throw new RuntimeException("Trying to loop over non connection???");
 	
 				while ( state != State.DISCONNECTED ) try {	
-					System.out.println("***Reader loop");
 					
 					recv( in.readLine() );
 		
@@ -514,7 +512,6 @@ public class Connection {
 	
 				while( state != State.DISCONNECTED ) try {	
 
-					System.out.println("***Writer loop");
 					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
 		
 				} catch (Exception e) {
@@ -528,7 +525,6 @@ public class Connection {
 
 			if (msg == null) return;
 
-			System.out.println("SEND " + msg.getMessage());
 			out.print( msg.getMessage() );
 			out.print( "\r\n" );
 			out.flush();

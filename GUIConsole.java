@@ -105,8 +105,8 @@ public class GUIConsole extends JPanel implements MouseListener {
 		textout.area.setBackground(Color.black);
 		textout.area.setForeground(Color.green);
 
-//		in.field.setBackground(Color.black);
-//		in.field.setForeground(Color.green);
+		in.field.setBackground(Color.black);
+		in.field.setForeground(Color.green);
 
 		//and of course monospace...
 		setFontReal(new Font("Monospaced", Font.PLAIN, 12));
