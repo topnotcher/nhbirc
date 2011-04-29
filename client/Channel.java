@@ -5,9 +5,9 @@ import java.util.List;
 //reflection used to handle ActionEvents.
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Iterator;
 
-
-public class Channel {
+public class Channel implements Iterable<User> {
 
 
 	private String name;
@@ -37,6 +37,10 @@ public class Channel {
 			}
 		
 		users.add(user);
+	}
+
+	public Iterator<User> iterator() {
+		return users.iterator();
 	}
 
 	void addUsers(List<User> list) {

@@ -87,14 +87,17 @@ public class User implements Comparable<User> {
 
 	public void part(Channel c) {
 		c.delUser(this);
+		removeChannel(c);
+	}
 
+	void removeChannel(Channel c) {
 		for (Channel channel : channels) 
 			if (c.equals(channel)) {
 				channels.remove(c);
 				return;
 			}
+
 	}
-	
 	public boolean equals(User u) {
 		return u.nick.equals(nick);
 	}

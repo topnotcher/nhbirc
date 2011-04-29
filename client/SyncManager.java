@@ -83,6 +83,18 @@ public class SyncManager implements MessageHandler {
 
 				if (user.numChannels() == 0)
 					users.remove(user.getNick());
+
+				if ( user.getNick().equals( irc.nick() ) ) {
+					Channel c = channels.remove( m.getTarget().getChannel() );
+
+					for ( User cur : c ) {
+						cur.removeChannel(c);
+						
+						if (cur.numChannels() == 0)
+							users.remove( user.getNick() );
+					}
+				}
+
 				break;
 
 			default:
