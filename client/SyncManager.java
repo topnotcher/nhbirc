@@ -88,7 +88,7 @@ public class SyncManager implements MessageHandler {
 
 				if ( user.getNick().equals( irc.nick() ) ) {
 					Channel c = channels.remove( m.getTarget().getChannel() );
-
+	
 					for ( User cur : c ) {
 						cur.removeChannel(c);
 						
@@ -117,6 +117,11 @@ public class SyncManager implements MessageHandler {
 
 	private void handleNames(Message m) {
 
+		/**
+		 * On bulk add operations,
+		 * the Channel relies on the SyncManager
+		 * to call usersChanged() at the end of the users list
+		 */
 		if ( m.getCode() == MessageCode.RPL_ENDOFNAMES ) {
 			getChannel( m.getArg(2) ).usersChanged();
 			return;
@@ -126,28 +131,24 @@ public class SyncManager implements MessageHandler {
 
 		StringTokenizer st = new StringTokenizer( m.getMessage(), " ");
 
-		List<User> names = new util.LinkedList<User>();
-
 		User u;
 		String nick;
 		while ( st.hasMoreTokens() ) {
 			nick = st.nextToken();
 
-			switch (nick.charAt(0)) {
-				case '~':
-				case '&':
-				case '@':
-				case '%':
-				case '+':
-					nick = nick.substring(1);
-			}
+			ChannelUser.Mode mode = ChannelUser.Mode.getMode( nick.charAt(0) );
+
+			//if there is a mode...
+			if ( mode != ChannelUser.Mode.NONE )
+				nick = nick.substring(1);
 
 			u = getUser( nick );
 			u.addChannel(c);
-			names.add(u);
-		}
 
-		c.addUsers(names);
+			c.addUserToList( u );
+
+			c.setUserMode( u, mode );
+		}
 	}
 
 	public synchronized User getUser(String nick) {

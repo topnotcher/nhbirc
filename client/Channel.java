@@ -1,85 +1,61 @@
 package client;
 
 import java.util.List;
-
-//reflection used to handle ActionEvents.
-import java.lang.reflect.Method;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 
+
+//reflection
+import java.lang.reflect.Method;
+import java.lang.reflect.InvocationTargetException;
+
+/**
+ * Synchs basic information about a channel.
+ */
 public class Channel implements Iterable<User> {
 
-
+	/**
+	 * This is necessarily set via the constructor.
+	 */
 	private String name;
 
+	/**
+	 * Channel topic
+	 */
 	private String topic = null;
 
-	private List<User> users;
+	/**
+	 * list of users on the channel
+	 * ChannelUser encapsulates User...
+	 */
+	private List<ChannelUser> users;
 
+	/**
+	 * List of ChannelListeners wanting 
+	 * to receive updats when this channel's state changes
+	 * (user list, topic, etc)
+	 */
 	private List<ChannelListener> subs;
 
+	/**
+	 * Create an empty channel with a name...
+	 */
 	public Channel(String name) {
 		this.name = name;
 
 		//pre-instantiate this as it should always contain
 		//at least one element: the current client...
-		users = new util.LinkedList<User>();
-	}
-
-	void setTopic(String topic) {
-		this.topic = topic;
-		topicChanged();
-	}
-
-	private void addUserToList(User user) {
-	
-		//very ugly.
-		for (User u : users) 
-			if (u.equals(user)) {
-				System.out.println("Trying to add equals user");
-
-				if (user != u)
-					System.out.println("THey are not the same object.");
-				return;
-			}
-		
-		users.add(user);
-	}
-
-	public Iterator<User> iterator() {
-		return users.iterator();
-	}
-
-	void addUsers(List<User> list) {
-
-		//we need to do a contains....
-		for (User user : list) 
-			addUserToList(user);
-
-		util.ListSorter.sort( users );
+		users = new util.LinkedList<ChannelUser>();
 	}
 
 
-	void addUser(User u) {
+	/**
+	 * Note there is no setter for name:
+	 * It must be set on instantiation, 
+	 * and cannot be changed.
+	 */
 
-		addUserToList( u );
-
-		util.ListSorter.sort(users);
-
-		usersChanged();
-	}
-
-	void delUser(User user) {
-		boolean change = true;
-
-		users.remove(user);
-/*		for (User u : users) {
-			if ( u.equals(user) )
-				users.remove(u);
-		}*/
-		
-
-		if (change) usersChanged();
+	public String getName() {
+		return name;
 	}
 
 	public String getTopic() {
@@ -89,23 +65,141 @@ public class Channel implements Iterable<User> {
 		return topic;
 	}
 
-	public String getName() {
-		return name;
+
+	/**
+	 * Intended to be called by SyncManager when the topic is
+	 * received/changed.
+	 */
+	public void setTopic(String topic) {
+		this.topic = topic;
+		topicChanged();
+	}
+
+	private ChannelUser getChannelUser(User u) {
+
+		//if the user is on the channel, return the user...
+		for (ChannelUser user : users) if ( user.equals(u) ) return user;
+
+			return null;
+	}
+
+	/**
+	 * Handle the dirty work of adding a user to a channel...
+	 * This is for internal use: it Does*Not*Fire*usersChanged*
+	 */
+	public synchronized void addUserToList(User user) {
+		
+
+		if ( getChannelUser(user) != null )
+			return;
+
+		//@TODO: synchronize access to the users list...
+		users.add( new ChannelUser(user) );
+	}
+
+
+
+	//Like an addAll, but makes sure a user isn't in teh channel...
+	public void addUsers(List<User> list) {
+
+		//we need to do a contains....
+		for (User user : list) 
+			addUserToList(user);
+
+		//yeah, this is efficient :p
+//		util.ListSorter.sort( users );
+
+		//DOES NOT fire usersChanged() here
+		//during a bulk insert, this class
+		//expects the context calling addUsers()
+		//to fire an update when it is done adding
+		//rationale: IRC messages are a max of 512 chars,
+		//so a NAMES reply might come in multiple messages,
+		//followed by a RPL_ENDOFNAMES.  The calling context
+		//should trigger a usersChanged() upon receiving the
+		//RPL_ENDOFNAMES
+	}
+
+	//Add a single user.
+	public void addUser(User u) {
+
+		addUserToList( u );
+
+//		util.ListSorter.sort(users);
+
+		usersChanged();
+	}
+
+
+	synchronized void delUser(User user) {
+
+		ChannelUser cuser = getChannelUser( user );
+
+		//if the user was found on the channel,
+		//remove from the list and fire a change...
+		if ( cuser != null ) {
+			users.remove( cuser );	
+			usersChanged();
+		}
+	}
+
+	public synchronized void setUserMode(User user, ChannelUser.Mode mode) {
+		ChannelUser cuser = getChannelUser(user);
+
+		///@TODO
+		if (cuser == null)
+			throw new RuntimeException("Trying to set mode on a user who isn't in the channel!!!!");
+
+		cuser.setMode(mode);
 	}
 
 	public int numUsers() {
 		return users.size();
 	}
 
-	public User getUser(int idx) {
+	public ChannelUser getUser(int idx) {
 		return users.get(idx);
+	}
+
+	public Iterator<ChannelUser> iterChannelUsers() {
+		return users.iterator();
+	}
+
+	public Iterator<User> iterator() {
+		return new Iterator<User>() {
+			
+			private Iterator<ChannelUser> it;
+
+			{ it = users.iterator(); }
+		
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			public User next() {
+				return it.next().getUser();
+			}
+
+			public void remove() throws UnsupportedOperationException {
+				throw new UnsupportedOperationException("Remove not supported.");
+			}
+		};
 	}
 
 	public boolean equals(Channel c) {
 		return c.name.equals(name);
 	}
 
+
+
+
+//////NOTIFICATION STUFF BELOW ///////
+
+
 	void usersChanged() {
+		//@TODO make this better :/
+		util.ListSorter.sort(users );
+
 		notifyListeners("usersChanged");
 	}
 
@@ -120,6 +214,7 @@ public class Channel implements Iterable<User> {
 		Class[] paramtypes = {this.getClass()};
 		Object[] params = {this};
 
+		//@TODO
 		System.out.println("FIRE EVENT: "+ event);
 
 		for (ChannelListener l : subs) {
@@ -139,13 +234,7 @@ public class Channel implements Iterable<User> {
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-
 		}
-
-		//method invoked, but threw exception
-	//	} catch (InvocationTargetException err) {
-
-	//	}
 	}
 
 
@@ -155,4 +244,9 @@ public class Channel implements Iterable<User> {
 
 		subs.add(c);
 	}
+
+	/**
+	 * @TODO remove listener
+	 * VERY important: ChannelWindows need to void the subscription when they go away...
+	 */
 }
