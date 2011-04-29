@@ -26,6 +26,8 @@ public class SyncManager implements MessageHandler {
 			.addType( MessageType.QUIT )
 			.addType( MessageType.PART )
 			.addType( MessageType.NAME )
+			.addType( MessageType.TOPIC )
+			.addType( MessageType.TOPICCHANGE )
 	//		.addType( MessageType.WHO )
 		;
 	}
@@ -97,6 +99,15 @@ public class SyncManager implements MessageHandler {
 
 				break;
 
+			case TOPIC:
+				getChannel( m.getArg(2) ).setTopic(m.getMessage());
+				break;
+
+			case TOPICCHANGE:
+				//#:m!topnotcher@13.37 TOPIC #foo :this is a new topic
+				getChannel( m.getTarget().getChannel() ).setTopic(m.getMessage());
+				break;
+
 			default:
 				print("????");
 
@@ -139,7 +150,7 @@ public class SyncManager implements MessageHandler {
 		c.addUsers(names);
 	}
 
-	public User getUser(String nick) {
+	public synchronized User getUser(String nick) {
 		User user = users.get(nick);
 
 		if ( user == null ) {
@@ -194,7 +205,7 @@ public class SyncManager implements MessageHandler {
 	}
 
 
-	private Channel _getChannel(String name) {
+	private synchronized Channel _getChannel(String name) {
 
 		return channels.get(name);
 	}

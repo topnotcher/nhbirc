@@ -11,7 +11,9 @@ public class Channel implements Iterable<User> {
 
 
 	private String name;
-	private String topic;
+
+	private String topic = null;
+
 	private List<User> users;
 
 	private List<ChannelListener> subs;
@@ -22,6 +24,11 @@ public class Channel implements Iterable<User> {
 		//pre-instantiate this as it should always contain
 		//at least one element: the current client...
 		users = new util.LinkedList<User>();
+	}
+
+	void setTopic(String topic) {
+		this.topic = topic;
+		topicChanged();
 	}
 
 	private void addUserToList(User user) {
@@ -52,9 +59,6 @@ public class Channel implements Iterable<User> {
 		util.ListSorter.sort( users );
 	}
 
-	void usersChanged() {
-		notifyListeners("usersChanged");
-	}
 
 	void addUser(User u) {
 
@@ -62,7 +66,7 @@ public class Channel implements Iterable<User> {
 
 		util.ListSorter.sort(users);
 
-		notifyListeners("usersChanged");
+		usersChanged();
 	}
 
 	void delUser(User user) {
@@ -75,7 +79,7 @@ public class Channel implements Iterable<User> {
 		}*/
 		
 
-		if (change) notifyListeners("usersChanged");
+		if (change) usersChanged();
 	}
 
 	public String getTopic() {
@@ -99,6 +103,14 @@ public class Channel implements Iterable<User> {
 
 	public boolean equals(Channel c) {
 		return c.name.equals(name);
+	}
+
+	void usersChanged() {
+		notifyListeners("usersChanged");
+	}
+
+	void topicChanged() {
+		notifyListeners("topicChanged");
 	}
 
 	private void notifyListeners(String event) {

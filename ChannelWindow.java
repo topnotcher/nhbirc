@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import javax.swing.ListModel;
 import javax.swing.AbstractListModel;
 import javax.swing.event.ListDataListener;
+import javax.swing.JTextField;
 
 import client.*;
 
@@ -12,6 +13,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 	
 	private client.Channel channel;
 	private ChannelListModel list;
+	private JTextField topic;
 
 	public ChannelWindow(String channel_name, client.SyncManager sync) {
 		super(channel_name, ChannelWindow.Type.CHANNEL);
@@ -45,8 +47,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 		add(chan,BorderLayout.CENTER);
 
 		//@TODO topic
-		add(new javax.swing.JTextField(), BorderLayout.NORTH);
-
+		add(topic = new JTextField(channel.getTopic()), BorderLayout.NORTH);
 	}
 
 	private class ChannelListModel extends AbstractListModel {
@@ -63,9 +64,11 @@ public class ChannelWindow extends ChatWindowAbstract {
 	};
 
 	public ChannelListener channelListener = new ChannelAdapter() {
+		public void topicChanged(Channel c) {
+			topic.setText(c.getTopic());
+		}
+
 		public void usersChanged(Channel c) {
-//			fireContentsChanged( channelListModel, 0, channel.numUsers() - 1);
-//			channelListModel.update();
 			list.update();
 
 		}
