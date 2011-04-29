@@ -10,7 +10,7 @@ import java.io.InputStreamReader;
 //import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.nio.CharBuffer;
@@ -36,10 +36,10 @@ public class Connection {
 	private String nick,user,real;
 
 	//queue of messages to send.
-	private Queue<OutgoingMessage> sendQ;
+	private BlockingQueue<OutgoingMessage> sendQ;
 	
 	//queue of messages received.
-	private Queue<Message> recvQ;
+	private BlockingQueue<Message> recvQ;
 
 	//Irc connection
 	private IrcConnection conn;
@@ -90,14 +90,11 @@ public class Connection {
 		//will replace these with own implementation of queue/prioirty queue later.
 		sendQ = new PriorityBlockingQueue<OutgoingMessage>();
 		recvQ = new PriorityBlockingQueue<Message>();
-	
+
+
 		//connect
 		//(blocks until connected)
 		conn = new IrcConnection();
-
-		
-		//Cause the connection to enter the main loop.
-		(new Thread( conn, "Connection" )).start();
 
 		//handle messages in a separate thread
 		//so the socket I/O never pauses
@@ -106,15 +103,16 @@ public class Connection {
 		//a PING could be left unread which would cause a pint timeout.
 		//)
 		(new Thread( new Worker(), "Message Handler" )).start();
-
-		//initiatite registration
-		register();
 	
 		addMessageHandler(this.internalHandler)
 			.addType( MessageType.PING )
 			.or()
 			.addCode( MessageCode.RPL_WELCOME )
+
 		;
+
+		//initiatite registration
+		register();
 
 		//This blocks while the connection is registering
 		//@TODO timeout...
@@ -366,7 +364,7 @@ public class Connection {
 				registered = true;
 				hostname = msg.getSource().getHost();
 			} else if ( msg.getType() == MessageType.PING )
-
+				System.out.println("****GOT PING");
 				//preempt!
 				send( "PONG", msg.getMessage(), Priority.CRITICAL );
 		}
@@ -387,24 +385,25 @@ public class Connection {
 				if ( (System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2 ) 
 					ping();
 
-				while ( recvQ.peek() != null ) { 
+				System.out.println("***Worker loop");
+				Message msg = null;
 
-					Iterator<IrcMessageSubscription> it = handlers.iterator();
-						
-					while (it.hasNext()) try {
-						it.next().handle( recvQ.peek() );
-					} catch (Exception e) {
-						//TODO need a way to handle these...
-						e.printStackTrace();
-					}
-
-					recvQ.poll();
-				}
-						
 				try {
-					Thread.sleep(150);
-				} catch (InterruptedException e) {	
-					//done.
+						msg = recvQ.poll(PING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS);
+				} catch (InterruptedException e) {
+					System.out.println("INTERRUPT");
+				}
+
+					//nothing to do
+				if (msg == null) continue;
+
+				Iterator<IrcMessageSubscription> it = handlers.iterator();
+					
+				while (it.hasNext()) try {
+					it.next().handle( msg );
+				} catch (Exception e) {
+					//TODO need a way to handle these...
+					e.printStackTrace();
 				}
 			}
 		}
@@ -433,7 +432,7 @@ public class Connection {
 		}
 	}
 	//connection thread
-	private class IrcConnection implements Runnable {
+	private class IrcConnection {
 
 		//per RFC, max size of irc message...
 		private static final int MSG_SIZE = 512;
@@ -442,7 +441,9 @@ public class Connection {
 
 		private boolean connected = false;
 
-		private Selector selector;
+		private Selector readSelect;
+
+		private Selector writeSelect;
 
 		private CharBuffer msg;
 
@@ -456,79 +457,108 @@ public class Connection {
 			//socket is connected, set to non-blocking.
 			conn.configureBlocking(false);
 			
-			selector = Selector.open();
+			writeSelect = Selector.open();
+			readSelect = Selector.open();
 
-			conn.register( selector, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+			conn.register( readSelect, SelectionKey.OP_READ );
+			conn.register( writeSelect, SelectionKey.OP_WRITE );
 
 			msg = CharBuffer.allocate(MSG_SIZE);
 	
 			last_tx = last_rx = System.currentTimeMillis();
 
 			connected = true;
+
+			(new Thread( readerThread, "Socket Read" )).start();
+			(new Thread( writerThread, "Socket Write" )).start();
 		}
 
-		/**
-		 * @TODO exception handling
-		 */
-		public void run() {
-			
-			if (connected == false) 
-				throw new RuntimeException("Trying to loop over non connection???");
+		private Runnable readerThread = new Runnable() {
 
-			while(connected) {
+			/**
+			 * @TODO exception handling
+			 */
+			public void run() {
 			
-				try {	
+				if (connected == false) 
+					throw new RuntimeException("Trying to loop over non connection???");
+	
+				while(connected) try {	
 
-					//block until a socket is selected...
-//					System.out.println("select()");
-					selector.select();
+					System.out.println("***Reader loop");
+
+					//block until there is data...
+					readSelect.select();
 					
-					Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+					Iterator<SelectionKey> keys = readSelect.selectedKeys().iterator();
 
 					while ( keys.hasNext() ) {
 
-//						System.out.println("keys..");
 						SelectionKey key = keys.next();
 						SocketChannel keyChannel = (SocketChannel)key.channel();
 
 						keys.remove();
 
-						if (sendQ.peek() != null)
-//							System.out.println("There are commands to send");
-
-			
-						if ( key.isWritable() ) {
-		
-							//rudementary keepalive.
-							//@TODO
-
-							while ( sendQ.peek() != null )
-								send( keyChannel, sendQ.poll() );
-						}
-
 						if ( key.isReadable() ) 
 							recv( keyChannel );
 					}
 
-					try {
-						Thread.sleep(150);
-					} catch (InterruptedException e) {
-						//not really relevant.
-					}
-			
+		
 				} catch (Exception e) {
 					//@TODO
 					e.printStackTrace();
 				}
-
 			}
+		};
 
-//			System.out.println("STopped Running");
-		}
+		private Runnable writerThread = new Runnable() {
+
+			/**
+			 * @TODO exception handling
+			 */
+			public void run() {
+			
+				if (connected == false) 
+					throw new RuntimeException("Trying to loop over non connection???");
+	
+				while(connected) try {	
+
+					System.out.println("***Writer loop");
+
+					//block until there is data...
+					writeSelect.select();
+					
+					Iterator<SelectionKey> keys = writeSelect.selectedKeys().iterator();
+
+					while ( keys.hasNext() ) {
+
+						SelectionKey key = keys.next();
+						SocketChannel keyChannel = (SocketChannel)key.channel();
+
+						keys.remove();
+
+						if ( key.isWritable() ) try {
+						
+							send(keyChannel,sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS));
+							
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+
+		
+				} catch (Exception e) {
+					//@TODO
+					e.printStackTrace();
+				}
+			}
+		};
+
+	
 
 		private void send(SocketChannel channel, OutgoingMessage msg) {
-//			System.out.println("SEND :" + msg);
 
+			if (msg == null) return;
 
 			//@TODO
 			if (msg.getMessage().length() > MSG_SIZE)
@@ -598,6 +628,7 @@ public class Connection {
 			}
 
 		}
+
 		public void close() {
 			
 			//stop the thread from looping.
