@@ -1,15 +1,15 @@
 package util;
 
 import java.util.ListIterator;
-import java.util.AbstractList;
+import java.util.List;
 
-class ListSorter {
+public class ListSorter {
 
 	/**
 	 * Sorts a list of comparable objects in ascending order
 	 * using selection sort.
 	 */
-	public static <T extends Comparable<T>> void sort(AbstractList<T> list) {
+	public static <T extends Comparable<T>> void sort(List<T> list) {
 
 		//outer iterator
 		//when this completes, the list list is sorted

@@ -1,5 +1,6 @@
 import javax.swing.JSplitPane;
 import javax.swing.JList;
+import javax.swing.JScrollPane;
 import java.awt.BorderLayout;
 import javax.swing.ListModel;
 import javax.swing.AbstractListModel;
@@ -32,7 +33,10 @@ public class ChannelWindow extends ChatWindowAbstract {
 		chan.setLeftComponent( console );
 
 		//the user list on the right.
-		chan.setRightComponent(new JList(list ));
+		//
+		 
+		chan.setRightComponent( new JScrollPane( new JList(list) ) );
+		
 
 		//favor the left side???
 		chan.setResizeWeight(1.0);

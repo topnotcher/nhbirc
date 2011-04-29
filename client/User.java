@@ -3,7 +3,7 @@ package client;
 
 import java.util.List;
 
-public class User {
+public class User implements Comparable<User> {
 
 	private String nick;
 	private String host;
@@ -51,6 +51,10 @@ public class User {
 		this.user = user;
 	}
 
+	public List<Channel> getChannels() {
+		return channels;
+	}
+
 	public void join(Channel c) {
 		c.addUser(this);
 		addChannel(c);
@@ -76,5 +80,9 @@ public class User {
 
 	public String toString() {
 		return nick;
+	}
+
+	public int compareTo(User user) {
+		return this.nick.compareTo( user.nick );
 	}
 }

@@ -24,8 +24,28 @@ public class Channel {
 		users = new util.LinkedList<User>();
 	}
 
+	private void addUserToList(User user) {
+	
+		//very ugly.
+		for (User u : users) 
+			if (u.equals(user)) {
+				System.out.println("Trying to add equals user");
+
+				if (user != u)
+					System.out.println("THey are not the same object.");
+				return;
+			}
+		
+		users.add(user);
+	}
+
 	void addUsers(List<User> list) {
-		users.addAll(list);
+
+		//we need to do a contains....
+		for (User user : list) 
+			addUserToList(user);
+
+		util.ListSorter.sort( users );
 	}
 
 	void usersChanged() {
@@ -33,13 +53,25 @@ public class Channel {
 	}
 
 	void addUser(User u) {
-		users.add(u);
+
+		addUserToList( u );
+
+		util.ListSorter.sort(users);
+
 		notifyListeners("usersChanged");
 	}
 
 	void delUser(User user) {
+		boolean change = true;
+
 		users.remove(user);
-		notifyListeners("usersChanged");
+/*		for (User u : users) {
+			if ( u.equals(user) )
+				users.remove(u);
+		}*/
+		
+
+		if (change) notifyListeners("usersChanged");
 	}
 
 	public String getTopic() {

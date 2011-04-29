@@ -4,20 +4,21 @@ package client;
 import irc.*;
 
 import java.util.List;
+import java.util.HashMap;
 import java.util.StringTokenizer;
 
 public class SyncManager implements MessageHandler {
 
 	Connection irc;
 
-	List<User> users;
-	List<Channel> channels;
-
+	HashMap<String,User> users;
+	HashMap<String,Channel> channels;
+	
 	public SyncManager( Connection irc ) {
 		this.irc = irc;
 
-		channels = new util.LinkedList<Channel>();
-		users = new util.LinkedList<User>();
+		channels = new HashMap<String,Channel>();
+		users = new HashMap<String,User>();
 
 		irc.addMessageHandler(this)
 			.addType( MessageType.NICKCHANGE )
@@ -37,7 +38,6 @@ public class SyncManager implements MessageHandler {
 
 			case JOIN:
 				handleJoin(m);
-				//print( m.getSource() + " JOINS " + m.getTarget() );
 				break;
 
 			case NAME:
@@ -45,15 +45,27 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			case NICKCHANGE:
-				print( m.getSource() +" CHANGES NICK TO "+ m.getTarget());
+
+				for ( Channel channel : getUserFromTarget( m.getSource() ).getChannels() ) 
+					channel.usersChanged();
+
+				print( m.getSource() +" CHANGES NICK TO "+ m.getTarget() );
 				break;
 
 			case QUIT:
 				print(m.getSource() + " QUITS ("+m.getMessage()+")");
+			
+				User user = getUserFromTarget(m.getSource());
+
+				for (Channel channel : user.getChannels() )
+					channel.delUser(user);
+
 				break;
 
 			case PART:
 				print(m.getSource() + " PARTS " + m.getTarget() + " (" + m.getMessage() + ")" );
+
+				getChannel( m.getTarget().getChannel() ).delUser( getUserFromTarget(m.getSource()) );
 				break;
 
 			default:
@@ -96,68 +108,51 @@ public class SyncManager implements MessageHandler {
 		}
 
 		c.addUsers(names);
-//:fubar m donmorrison picardo &RomanII Father_MacklePenny- Clipper Panda DocHoliday Dreamhunter Myrddin Someone Tiff SpikeSpiegel Tish Lil-Wayne TeQ|Bed Shaggs palladino_ RD Mr_Trapani crab Whiplash @Kittie Shaw FCUK Marston ghostdog Gaara Tanda[A] Jasmine Falcon Trixie AWillAY Bulldog JewishJake +tita Genesis DeadlySin Weedall Sparkles|away @Canucklehead &anubis rofldog Gue
 	}
 
 	private void handleJoin(Message m) {
 		print( m.getSource() + " JOINS " + m.getTarget() );
 
 		Channel c = getChannel(m.getTarget().getChannel());
-			//_getChannel( m.getTarget().getChannel() );
 
-		//no record of the channel.
-/*		if (c == null) {
-
-			//the join is not ME joining
-			if ( ! m.getSource().getNick().equals( irc.nick() ) ) {
-				System.out.println(m.getSource().getNick() + " != " + irc.nick());
-					//Which is pretty odd, so we'll ignore it..
-					return;
-			}
-				c = new Channel( m.getTarget().getChannel() );
-		}*/
-
-			getUserFromTarget( m.getSource() ).join(c);
+		getUserFromTarget( m.getSource() ).join(c);
 			
 	}
 
 	public User getUser(String nick) {
-		User user = null;
+		User user = users.get(nick);
 
-		for (User u : users)
-			if ( u.getNick().equals(nick) ) {
-				user = u;
-				break;
-			}
- 
 		if ( user == null ) {
-			user = new User(nick);
+		 	user = newUser(nick, null, null);
 		}
 
 		return user;
 	}
 
+	private User newUser(String nick, String user, String host) {
+		User u = new User(nick,user,host);
+		users.put(nick,u);
+
+		return u;
+	}
+
 	private User getUserFromTarget(MessageTarget tg) {
-		User user = null;
+
 
 		String nick = tg.getNick();
-		String host = "", ident = "";
+		String host = null, ident = null;
+
+		User user = getUser(nick);;
+
 
 		if ( tg.scope( MessageTarget.Scope.USER ) ) {
 			host = tg.getHost();
 			ident = tg.getUser();
 		}
-			
-
-		for (User u : users)
-			if ( u.getNick().equals(nick) ) {
-				user = u;
-				break;
-			}
-			
+						
 		if ( user == null ) {
-			user = new User(nick,ident,host);
-		} else {
+			user = newUser(nick,ident,host);
+		} else if (host != null) {
 			user.setUser(ident);
 			user.setHost(host);
 		}
@@ -173,26 +168,19 @@ public class SyncManager implements MessageHandler {
 
 		else {
 			c = new Channel(name);
-			channels.add(c);
+			addChannel(c);
 			return c;
 		}
 	}
 
 
 	private Channel _getChannel(String name) {
-		for (Channel c : channels) {
-			if ( c.getName().equals(name) )
-				return c;
-		}
 
-		return null;
+		return channels.get(name);
 	}
 
 	private void addChannel(Channel c) {
-		if (channels == null) 
-			channels = new util.LinkedList<Channel>();
-
-		channels.add(c);
+		channels.put(c.getName(), c);
 	}
 
 	public void print(String ln) {
