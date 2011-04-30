@@ -91,26 +91,29 @@ class MessageParser {
 
 		else {
 
-			/**
-			 * @TODO something is a little messed up in the ordering here
-			 * also for all CTCPS, strip the command, and set it to message.command
-			 */
-			if ( msg.startsWith("\u0001ACTION") && msg.endsWith("\u0001") ) {
-				type = MessageType.ACTION;
+			if ( command.equals("PRIVMSG") ) {
+				String pm = message.getMessage();
 
-				//strip the SOH wrappers and command from the CTCP
-				message.setMessage( msg.substring( msg.indexOf('\u0001')+7, msg.lastIndexOf('\u0001') ) );
-			}
+				//starts and ends with an SOH
+				if ( Character.getNumericValue( pm.charAt(0))  <= 1 /*== Character.forDigit(1,10)*/ && Character.getNumericValue( pm.charAt( pm.length() -1)) <= 1 /*== Character.forDigit(1,10) */) {
 
-			else if ( command.equals("PRIVMSG") ) {
+					System.out.println("CTCP: " + pm);
+
+					//XACTION
+					if ( pm.length() >= 8 && pm.substring(1,7).equals("ACTION") ) {
+						type = MessageType.ACTION;
+
+						message.setMessage(  pm.substring( pm.indexOf(' '), pm.length()) );
+
+					} else {
+						type = MessageType.CTCP;
+						priority = Priority.LOW;
+					}
+
 				
+				}
 
-				if ( msg.startsWith("\u0001") && msg.endsWith("\u0001") ) {
-					type = MessageType.CTCP;
-					priority = Priority.LOW;
-				} 
-
-				else if (args.size() >= 2 && args.get(1).startsWith("#")) 
+				else if (args.size() >= 2 && args.get(1).charAt(0) == '#') 
 					type = MessageType.CHANNEL;
 
 				else 
