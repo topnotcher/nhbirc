@@ -56,6 +56,11 @@ public class ChannelWindow extends ChatWindowAbstract {
 		add(topic = new JTextField(channel.getTopic()), BorderLayout.NORTH);
 	}
 
+	protected void finalize() {
+		System.out.println("Finalize channel window");
+		channel.removeChannelListener( channelListener );
+	}
+
 	private class ChannelListModel extends AbstractListModel {
 		public int getSize() {
 			return channel.numUsers();

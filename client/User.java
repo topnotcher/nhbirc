@@ -2,31 +2,44 @@
 package client;
 
 import java.util.List;
+import java.util.HashMap;
+
 
 public class User implements Comparable<User> {
 
 	private String nick;
-	private String host;
+	private String host = null;
 	private String user;
 
 	private List<Channel> channels;
 
+	private static HashMap<String,User> users = new HashMap<String,User>();
+
 	/**
 	 * at least we'll have a nick...
 	 */
-	public User(String nick) {
-		this(nick,null,null);
+	private User(String nick) {
+		this.nick = nick;
+		channels = new util.LinkedList<Channel>();
+
+		users.put(nick,this);
 	}
 
-	public User(String nick, String user, String host) {
-		this.nick = nick;
-		this.user = user;
-		this.host = host;
+	public synchronized static User get(String nick) {
+		User ret = users.get(nick);
 
-		//assume user is always on one channel (otherwise why are we synching???)
-		channels = new util.LinkedList<Channel>();
+		if (ret == null)
+			ret = new User(nick);
+
+		return ret;
 	}
 	
+	public synchronized void suicide() {
+		users.remove(nick);
+		nick = null;
+		channels = null;
+	}
+
 	public String getNick() {
 		return this.nick;
 	}
@@ -39,15 +52,14 @@ public class User implements Comparable<User> {
 		return this.host;
 	}
 
-	public void setNick(String nick) {
-		this.nick = nick;
-	}
-
 	public void setHost(String host) {
+		if (host == null) return;
+
 		this.host = host;
 	}
 
 	public void setUser(String user) {
+		if (user == null) return;
 		this.user = user;
 	}
 
@@ -73,8 +85,13 @@ public class User implements Comparable<User> {
 		return channels.size();
 	}
 
-	public void nick(String nick) {
+	public synchronized void nick(String nick) {
+
+		users.remove(this.nick);
+
 		this.nick = nick;
+
+		users.put(this.nick,this);
 
 		for (Channel channel: channels)
 			channel.usersChanged();
@@ -83,11 +100,13 @@ public class User implements Comparable<User> {
 	public void quit() {
 		for (Channel channel : channels) 
 			channel.delUser(this);
+		suicide();
 	}
 
 	public void part(Channel c) {
 		c.delUser(this);
 		removeChannel(c);
+
 	}
 
 	void removeChannel(Channel c) {
@@ -97,7 +116,10 @@ public class User implements Comparable<User> {
 				return;
 			}
 
+		if (numChannels() == 0)
+			suicide();
 	}
+
 	public boolean equals(User u) {
 		return u.nick.equals(nick);
 	}

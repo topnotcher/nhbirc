@@ -4,21 +4,14 @@ package client;
 import irc.*;
 
 import java.util.List;
-import java.util.HashMap;
 import java.util.StringTokenizer;
 
 public class SyncManager implements MessageHandler {
 
 	Connection irc;
 
-	HashMap<String,User> users;
-	HashMap<String,Channel> channels;
-	
 	public SyncManager( Connection irc ) {
 		this.irc = irc;
-
-		channels = new HashMap<String,Channel>();
-		users = new HashMap<String,User>();
 
 		irc.addMessageHandler(this)
 			.addType( MessageType.NICKCHANGE )
@@ -31,7 +24,9 @@ public class SyncManager implements MessageHandler {
 	//		.addType( MessageType.WHO )
 		;
 	}
-
+	private void print(String m) {
+		System.out.println(m);
+	}
 	public void handle( Message m ) {
 
 		System.out.println(m.getRaw());
@@ -52,15 +47,9 @@ public class SyncManager implements MessageHandler {
 			case NICKCHANGE:
 				user = getUserFromTarget( m.getSource() );
 
-				//remove the user from the hashmap
-				users.remove( user.getNick() );
-
 				//change the nick, notify the channels
 				user.nick( m.getTarget().getNick() );
 		
-				//readd the user with the new nick
-				users.put( user.getNick(), user );
-
 				print( m.getSource() +" CHANGES NICK TO "+ m.getTarget() );
 				break;
 
@@ -69,8 +58,6 @@ public class SyncManager implements MessageHandler {
 
 				user = getUserFromTarget(m.getSource());
 				user.quit();
-
-				users.remove( user.getNick() );
 
 				break;
 
@@ -83,19 +70,8 @@ public class SyncManager implements MessageHandler {
 				user = getUserFromTarget(m.getSource());
 				user.part( getChannel( m.getTarget().getChannel() ) );
 
-				if (user.numChannels() == 0)
-					users.remove(user.getNick());
-
-				if ( user.getNick().equals( irc.nick() ) ) {
-					Channel c = channels.remove( m.getTarget().getChannel() );
-	
-					for ( User cur : c ) {
-						cur.removeChannel(c);
-						
-						if (cur.numChannels() == 0)
-							users.remove( user.getNick() );
-					}
-				}
+				if ( user.getNick().equals( irc.nick() ) ) 
+					getChannel( m.getTarget().getChannel() ).destroy();
 
 				break;
 
@@ -151,21 +127,8 @@ public class SyncManager implements MessageHandler {
 		}
 	}
 
-	public synchronized User getUser(String nick) {
-		User user = users.get(nick);
-
-		if ( user == null ) {
-		 	user = newUser(nick, null, null);
-		}
-
-		return user;
-	}
-
-	private User newUser(String nick, String user, String host) {
-		User u = new User(nick,user,host);
-		users.put(nick,u);
-
-		return u;
+	public User getUser(String nick) {
+		return User.get(nick);
 	}
 
 	private User getUserFromTarget(MessageTarget tg) {
@@ -174,48 +137,15 @@ public class SyncManager implements MessageHandler {
 		String nick = tg.getNick();
 		String host = null, ident = null;
 
-		User user = getUser(nick);;
+		User user = getUser(nick);
 
-
-		if ( tg.scope( MessageTarget.Scope.USER ) ) {
-			host = tg.getHost();
-			ident = tg.getUser();
-		}
-						
-		if ( user == null ) {
-			user = newUser(nick,ident,host);
-		} else if (host != null) {
-			user.setUser(ident);
-			user.setHost(host);
-		}
+		user.setHost(host);
+		user.setUser(ident);
 	
 		return user;
 	}
 
 	public Channel getChannel(String name) {
-		Channel c;
-
-		if ( (c = _getChannel(name)) != null )
-			return c;
-
-		else {
-			c = new Channel(name);
-			addChannel(c);
-			return c;
-		}
-	}
-
-
-	private synchronized Channel _getChannel(String name) {
-
-		return channels.get(name);
-	}
-
-	private void addChannel(Channel c) {
-		channels.put(c.getName(), c);
-	}
-
-	public void print(String ln) {
-		System.out.println(ln);
+		return Channel.get(name);
 	}
 }

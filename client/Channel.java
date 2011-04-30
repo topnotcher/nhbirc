@@ -2,6 +2,7 @@ package client;
 
 import java.util.List;
 import java.util.Iterator;
+import java.util.HashMap;
 
 
 //reflection
@@ -36,17 +37,31 @@ public class Channel implements Iterable<User> {
 	 */
 	private List<ChannelListener> subs;
 
+
+	private static HashMap<String,Channel> channels = new HashMap<String,Channel>();
+
 	/**
 	 * Create an empty channel with a name...
 	 */
-	public Channel(String name) {
+	private Channel(String name) {
 		this.name = name;
 
 		//pre-instantiate this as it should always contain
 		//at least one element: the current client...
 		users = new util.LinkedList<ChannelUser>();
+
+		channels.put(name,this);
 	}
 
+
+	public static Channel get(String name) {
+		Channel ret = channels.get(name);
+
+		if (ret == null)
+			ret = new Channel(name);
+
+		return ret;
+	}
 
 	/**
 	 * Note there is no setter for name:
@@ -143,6 +158,20 @@ public class Channel implements Iterable<User> {
 		}
 	}
 
+	public void destroy() {
+		channels.remove(name);
+
+		for (User u : this) 
+			u.removeChannel(this);
+
+		users = null;
+		subs = null;
+
+		System.out.println( this.name + " self-destruct");
+
+		name = null;
+	}
+
 	public synchronized void setUserMode(User user, ChannelUser.Mode mode) {
 		ChannelUser cuser = getChannelUser(user);
 
@@ -154,7 +183,7 @@ public class Channel implements Iterable<User> {
 	}
 
 	public int numUsers() {
-		return users.size();
+		return (users == null) ? 0 : users.size();
 	}
 
 	public ChannelUser getUser(int idx) {
@@ -243,6 +272,12 @@ public class Channel implements Iterable<User> {
 			subs = new util.LinkedList<ChannelListener>();
 
 		subs.add(c);
+	}
+
+	public void removeChannelListener(ChannelListener c) {
+		if (subs == null) return;
+
+		subs.remove(c);
 	}
 
 	/**
