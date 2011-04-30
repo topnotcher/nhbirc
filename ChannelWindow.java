@@ -6,6 +6,7 @@ import javax.swing.ListModel;
 import javax.swing.AbstractListModel;
 import javax.swing.event.ListDataListener;
 import javax.swing.JTextField;
+import java.awt.Color;
 
 import client.*;
 
@@ -35,10 +36,15 @@ public class ChannelWindow extends ChatWindowAbstract {
 		chan.setLeftComponent( console );
 
 		//the user list on the right.
-		//
-		 
-		chan.setRightComponent( new JScrollPane( new JList(list) ) );
 		
+		JList userlist = new JList(list);
+		
+		userlist.setBackground(Color.black);
+		userlist.setForeground(Color.green);
+
+
+		chan.setRightComponent( new JScrollPane( userlist ) );
+
 
 		//favor the left side???
 		chan.setResizeWeight(1.0);
