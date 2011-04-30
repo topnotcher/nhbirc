@@ -29,7 +29,7 @@ public class GUIConsole extends JPanel implements MouseListener {
 	/**
 	 * Output(Print)Stream associated with this console.
 	 */
-	private PrintStream out;
+//	private PrintStream out;
 
 	/**
 	 * InputStrem associated with this console.
@@ -39,7 +39,8 @@ public class GUIConsole extends JPanel implements MouseListener {
 	/**
 	 * The textarea for the output stream of the console.
 	 */
-	protected JTextArea area;
+	//protected JTextArea area;
+	protected WrappedTextPane area;
 
 	/**
 	 * Textfield for the input stream of the console.
@@ -47,7 +48,6 @@ public class GUIConsole extends JPanel implements MouseListener {
 	protected JTextField field;
 
 	private ActionListener listener;
-
 
 	public GUIConsole() {
 		this("");
@@ -60,16 +60,17 @@ public class GUIConsole extends JPanel implements MouseListener {
 		super(new BorderLayout());
 	
 		//OutputStream that appends output to a textarea
-		TextAreaOutput textout = new TextAreaOutput();
+//		TextAreaOutput textout = new TextAreaOutput();
 
 		//the textarea being appended to
-		area = textout.area;
+//		area = textout.area;
 
+		area = new WrappedTextPane();
 		//listen to the mouse
 		area.addMouseListener(this);
 
 		//a printstream build around the textarea
-		out = new PrintStream( textout );
+//		out = new PrintStream( textout );
 
 		//an InputStream that gathers input from a textfield.
 		in = new TextFieldPrompt();
@@ -78,7 +79,7 @@ public class GUIConsole extends JPanel implements MouseListener {
 		field = in.field;
 
 		//add/position both inpupt components to this panel
-		this.add(textout.area, BorderLayout.CENTER);
+		this.add(area, BorderLayout.CENTER);
 
 		SpringLayout layout = new SpringLayout() ;
 	
@@ -102,8 +103,8 @@ public class GUIConsole extends JPanel implements MouseListener {
 		this.add(input, BorderLayout.SOUTH);
 		
 		//Green on black is the ONLY color for a terminal.
-		textout.area.setBackground(Color.black);
-		textout.area.setForeground(Color.green);
+		area.setBackground(Color.black);
+		area.setForeground(Color.green);
 
 		in.field.setBackground(Color.black);
 		in.field.setForeground(Color.green);
@@ -120,12 +121,16 @@ public class GUIConsole extends JPanel implements MouseListener {
 		//not implemented
 	}
 
-	public InputStream in() {
-		return in;
-	}
+//	public InputStream in() {
+//		return in;
+//	}
 
-	public PrintStream out() {
-		return out;
+//	public PrintStream out() {
+//		return out;
+//	}
+
+	public void append(String text) {
+		area.append(text);
 	}
 
 	private void setFontReal(Font f) {

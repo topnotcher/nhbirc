@@ -23,21 +23,23 @@ class WrappedTextPane extends JComponent implements Iterable<String> {
 	private final int PAD = 2;
 
 
-	public WrappedTextPane() {
-
-		setFont(new Font("Monospaced", Font.PLAIN, 12));
-	}
+	public WrappedTextPane() { }
 
 	public void append( String text ) {
 	
 		TextNode add = new TextNode( text );
 
-		add.prev = null;
-		add.next = head;
+		if ( head != null) {
+			add.prev = null;
+			add.next = head;
 
-		head.prev = add;
+			head.prev = add;
 
-		head = add;
+			head = add;
+		} else {
+			head = add;
+			foot = add;
+		}
 
 		//if the message > the buffer size,
 		//we drop the last item...
@@ -53,6 +55,8 @@ class WrappedTextPane extends JComponent implements Iterable<String> {
 			//then mark the foot as the end of the list;
 			foot.next = null;
 		}
+
+		repaint();
 	}
 
 	public void paint(Graphics g) {
@@ -72,8 +76,8 @@ class WrappedTextPane extends JComponent implements Iterable<String> {
 		while ( lines.hasNext() && remaining > 0 ) {
 			String[] rows = getRows( lines.next() ); 
 
-			for (int i = rows.length - 1; i >= 0 && remaining > 0; ++i,--remaining)
-				g.drawString( rows[ rows.length - i ], PAD, remaining*FONTHEIGHT);
+			for (int i = rows.length - 1; i >= 0 && remaining > 0; --i,--remaining)
+				g.drawString( rows[ i ], PAD, remaining*FONTHEIGHT);
 		}
 	}
 
