@@ -23,7 +23,7 @@ class Client extends JFrame {
 		new Client();
 	}
 
-	private final String CHAN = "#divinelunacy";
+	private final String CHAN = "#foo";
 
 	/**
 	 * **BASIC** prototype.
@@ -94,12 +94,16 @@ class Client extends JFrame {
 		//and put all PMS whether channel or private in one window...
 		public void handle(Message msg) {
 
-			if ( msg.getType() == MessageType.CHANNEL ) {
+			if ( msg.getType() == MessageType.CHANNEL || (msg.getType() == MessageType.ACTION && msg.getTarget().scope(MessageTarget.Scope.CHANNEL) ) ) {
 
 				for (ChatWindow c : windows) {
 					
 					if ( c.getType() == ChatWindow.Type.CHANNEL && c.getName().equals(msg.getTarget().getChannel()) ) {
-						c.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+						
+						if ( msg.getType() == MessageType.ACTION )
+							c.put("*" + msg.getSource().getNick() + " " +msg.getMessage() );
+						else 
+							c.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
 						break;
 					}
 

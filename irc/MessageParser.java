@@ -91,40 +91,33 @@ class MessageParser {
 
 		else {
 
-			if ( command.equals("PRIVMSG") ) {
+			if ( command.equals("PRIVMSG") || command.equals("NOTICE") ) {
+				final char SOH = '\u0001';
 				String pm = message.getMessage();
 
 				//starts and ends with an SOH
-				if ( Character.getNumericValue( pm.charAt(0))  <= 1 /*== Character.forDigit(1,10)*/ && Character.getNumericValue( pm.charAt( pm.length() -1)) <= 1 /*== Character.forDigit(1,10) */) {
-
-					System.out.println("CTCP: " + pm);
-
+				if ( pm.charAt(0) == SOH && pm.charAt( pm.length() -1)  == SOH ) {
+	
 					//XACTION
 					if ( pm.length() >= 8 && pm.substring(1,7).equals("ACTION") ) {
 						type = MessageType.ACTION;
-
-						message.setMessage(  pm.substring( pm.indexOf(' '), pm.length()) );
+						message.setMessage(  pm.substring( pm.indexOf(' ')+1, pm.length()-1) );
 
 					} else {
 						type = MessageType.CTCP;
 						priority = Priority.LOW;
 					}
 
-				
-				}
+					
+				} else if ( command.equals("NOTICE") ) {
+					type = MessageType.NOTICE;
 
-				else if (args.size() >= 2 && args.get(1).charAt(0) == '#') 
+				} else if (args.size() >= 2 && args.get(1).charAt(0) == '#') 
 					type = MessageType.CHANNEL;
 
 				else 
 					type = MessageType.QUERY;
 			}
-
-			else if ( command.equals("NOTICE") )
-				type = MessageType.NOTICE;
-
-			else if ( command.equals("INVITE") )
-				type = MessageType.INVITE;
 
 			else if ( command.equals("JOIN") ) {
 				type = MessageType.JOIN;

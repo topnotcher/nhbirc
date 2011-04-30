@@ -491,6 +491,16 @@ public class Connection {
 	
 				while ( state != State.DISCONNECTED ) try {	
 					
+					/**
+					 * NOTE: this *should* work.  
+					 * Not 100% sure in the case of CTCPS
+					 * I believe CR/LF characters must be quoted in in a CTCP (by the server, presumably),
+					 * but in any case, this should be changed to a character-by-character read for two reasons:
+					 *
+					 * (1) enforce the MSG_SIZE
+					 * (2) An unquoted embedded CR\LF inside a CTCP would cause the message to be split into two
+					 * 	thus allowing message injection. Probably not a good idea to rely on the server to do the quoting...
+					 */
 					recv( in.readLine() );
 		
 				} catch (Exception e) {
