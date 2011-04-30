@@ -8,6 +8,11 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.util.Scanner;
 
+
+/**
+ * @TODO strip this down, remove InputStream, make it extend Text field...
+ * also remove echo from this. 
+ */
 class TextFieldPrompt extends InputStream implements KeyListener {
 	
 	/**

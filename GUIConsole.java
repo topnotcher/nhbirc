@@ -24,12 +24,7 @@ import java.awt.event.MouseEvent;
 
 import java.awt.event.ActionListener;
 
-public class GUIConsole extends JPanel implements MouseListener {
-
-	/**
-	 * Output(Print)Stream associated with this console.
-	 */
-//	private PrintStream out;
+public class GUIConsole extends BufferedPanel implements MouseListener {
 
 	/**
 	 * InputStrem associated with this console.
@@ -40,7 +35,7 @@ public class GUIConsole extends JPanel implements MouseListener {
 	 * The textarea for the output stream of the console.
 	 */
 	//protected JTextArea area;
-	protected WrappedTextPane area;
+	protected WrappedTextComponent area;
 
 	/**
 	 * Textfield for the input stream of the console.
@@ -55,22 +50,13 @@ public class GUIConsole extends JPanel implements MouseListener {
 
 	public GUIConsole( String name ) {
 
-		//BorderLayout makes for an easy console layout
-		//although it's probably a little bloated for this simple purpose
-		super(new BorderLayout());
+		setLayout(new BorderLayout());
 	
-		//OutputStream that appends output to a textarea
-//		TextAreaOutput textout = new TextAreaOutput();
+		area = new WrappedTextComponent();
 
-		//the textarea being appended to
-//		area = textout.area;
-
-		area = new WrappedTextPane();
 		//listen to the mouse
 		area.addMouseListener(this);
 
-		//a printstream build around the textarea
-//		out = new PrintStream( textout );
 
 		//an InputStream that gathers input from a textfield.
 		in = new TextFieldPrompt();
@@ -78,8 +64,20 @@ public class GUIConsole extends JPanel implements MouseListener {
 		//the textfield
 		field = in.field;
 
-		//add/position both inpupt components to this panel
-		this.add(area, BorderLayout.CENTER);
+
+
+		//Green on black is the ONLY color for a terminal.
+		setBackground(Color.black);
+		setForeground(Color.green);
+
+		in.field.setBackground(Color.black);
+		in.field.setForeground(Color.green);
+
+		setFont(new Font("Monospaced", Font.PLAIN, 12));
+
+
+
+		this.add( area , BorderLayout.CENTER);
 
 		SpringLayout layout = new SpringLayout() ;
 	
@@ -100,17 +98,7 @@ public class GUIConsole extends JPanel implements MouseListener {
 		layout.putConstraint(SpringLayout.SOUTH, input, 5, SpringLayout.SOUTH, in.field);
 
 
-		this.add(input, BorderLayout.SOUTH);
-		
-		//Green on black is the ONLY color for a terminal.
-		area.setBackground(Color.black);
-		area.setForeground(Color.green);
-
-		in.field.setBackground(Color.black);
-		in.field.setForeground(Color.green);
-
-		//and of course monospace...
-		setFontReal(new Font("Monospaced", Font.PLAIN, 12));
+		this.add(input, BorderLayout.SOUTH);			
 	}
 	
 	public void addActionListener(ActionListener l) {
