@@ -7,6 +7,7 @@ import javax.swing.AbstractListModel;
 import javax.swing.event.ListDataListener;
 import javax.swing.JTextField;
 import java.awt.Color;
+import java.awt.Dimension;
 
 import client.*;
 
@@ -44,12 +45,15 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 		userlist.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 13));
 
-		chan.setRightComponent( new JScrollPane( userlist ) );
+		JScrollPane scroll = new JScrollPane(userlist);
+		scroll.setMinimumSize( new Dimension(200,100) );
+		chan.setRightComponent( 
+			scroll
+		);
 
 
 		//favor the left side???
-		chan.setResizeWeight(1.0);
-
+		chan.setResizeWeight(0.9);
 
 		add(chan,BorderLayout.CENTER);
 

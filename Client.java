@@ -33,7 +33,7 @@ class Client extends JFrame {
 	private Client() {
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
-		setSize(800,800);
+		setSize(1000,800);
 
 		setTitle("Irc client");
 
