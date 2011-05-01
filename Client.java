@@ -294,7 +294,7 @@ class Client extends JFrame {
 			String ret = "";
 
 			for ( int i = n; args != null && i < args.length; ++i) 
-				ret += " " + args[i];
+				ret += ((i > n) ? " " : "") + args[i];
 
 			return ret;
 		}
