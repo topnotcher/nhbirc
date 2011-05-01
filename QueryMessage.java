@@ -1,5 +1,8 @@
 import java.awt.Color;
 
+/**
+ * Abstract painting a "query type" message to the screen..
+ */
 public class QueryMessage extends PaintableMessage {
 
 	public QueryMessage(irc.Message msg) {
@@ -16,6 +19,8 @@ public class QueryMessage extends PaintableMessage {
 				append( "<").append( src, java.awt.Color.yellow).append( "> " + msg.getMessage() );
 				break;
 		}
+
+		//in any case, we want every line to indent AFTER the nickname and separating space.
 		indent(src.length()+3);
 	}
 }

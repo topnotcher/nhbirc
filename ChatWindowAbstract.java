@@ -49,6 +49,10 @@ abstract class ChatWindowAbstract extends JPanel implements ActionListener, Chat
 		console.append(new TimestampedMessage(msg));
 	}
 
+	/**
+	 * Every message painted to a ChatWindowAbstract is timestamped.
+	 * @TODO make sure we're not passed a TimestampedMessage
+	 */
 	public void put(PaintableText msg) {
 		console.append(new TimestampedMessage(msg));
 	}

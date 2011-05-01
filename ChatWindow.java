@@ -13,8 +13,10 @@ interface ChatWindow {
 
 	public Type getType();
 
+	//add a string
 	public void put(String msg);
 
+	//add a paintable text obj
 	public void put(PaintableText msg);
 
 	public void addActionListener(ActionListener e);
