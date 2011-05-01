@@ -4,16 +4,22 @@ import java.util.List;
 
 class PaintableMessage implements PaintableText {
 
-	private List<PaintableString> strings;
+	private List<PaintableText> strings;
 
 	public PaintableMessage() {
-		strings = new util.LinkedList<PaintableString>();
+		strings = new util.LinkedList<PaintableText>();
+	}
+	
+	public PaintableMessage append(PaintableText text) {
+		strings.add(text);
+		return this;
 	}
 
 	public PaintableMessage append(String text, Color color) {
 		strings.add(new PaintableString(text,color));
 		return this;
 	}
+
 	public PaintableMessage append(String text) {
 		return append(text,null);
 	}
@@ -21,7 +27,7 @@ class PaintableMessage implements PaintableText {
 	public String getText() {
 		String text = "";
 
-		for ( PaintableString string : strings )
+		for ( PaintableText string : strings )
 			text += string.getText();
 
 		return text;
@@ -33,7 +39,7 @@ class PaintableMessage implements PaintableText {
 		int width = 0;
 		int height = g.getFontMetrics().getHeight();
 
-		for ( PaintableString string : strings ) {
+		for ( PaintableText string : strings ) {
 			width = g.getFontMetrics().stringWidth(string.getText());
 
 			x += string.paint( g.create(x, 0, width, height) );
@@ -50,7 +56,7 @@ class PaintableMessage implements PaintableText {
 		int width;
 		int height = g.getFontMetrics().getHeight();
 
-		for ( PaintableString string : strings ) {
+		for ( PaintableText string : strings ) {
 			int len = string.getText().length();
 
 			//we need to seek.
