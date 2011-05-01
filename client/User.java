@@ -25,7 +25,10 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		users.put(nick,this);
 	}
 
-	public synchronized static User get(String nick) {
+	/**
+	 * PACKAGE PRIVATE
+	 */
+	synchronized static User get(String nick) {
 		User ret = users.get(nick);
 
 		if (ret == null)
@@ -34,7 +37,7 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		return ret;
 	}
 	
-	public synchronized void suicide() {
+	synchronized void suicide() {
 		users.remove(nick);
 		nick = null;
 		channels = null;
@@ -85,7 +88,7 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		return channels.size();
 	}
 
-	public synchronized void nick(String nick) {
+	synchronized void nick(String nick) {
 
 		users.remove(this.nick);
 
