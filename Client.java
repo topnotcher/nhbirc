@@ -394,7 +394,7 @@ class Client extends JFrame {
 						userWindow.put(
 							(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 								.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" QUIT ")
-								.append(" (",Color.darkGray).append( msg.getMessage() )
+								.append("(",Color.darkGray).append( msg.getMessage() )
 								.append(")", Color.darkGray).indent(4)
 							);
 					}
