@@ -10,12 +10,16 @@ interface PaintableText {
 	 *
 	 * Note that this method assumes it has been given its own grahpics context.
 	 * That is: 0,0 should be the TOP LEFT of where this string will be painted.
+	 *
+	 * @return width of the painted string.
 	 */
 	public int paint(Graphics g);
 
 	/**
 	 * Paint a substring of this PaintableText
 	 * @see paint(Graphics)
+	 *
+	 * @return width of the painted string
 	 */
 	public int paint(Graphics g, int start, int end);
 
