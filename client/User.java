@@ -3,9 +3,9 @@ package client;
 
 import java.util.List;
 import java.util.HashMap;
+import java.util.Iterator;
 
-
-public class User implements Comparable<User> {
+public class User implements Comparable<User>, Iterable<Channel> {
 
 	private String nick;
 	private String host = null;
@@ -130,5 +130,9 @@ public class User implements Comparable<User> {
 
 	public int compareTo(User user) {
 		return this.nick.compareTo( user.nick );
+	}
+
+	public Iterator<Channel> iterator() {
+		return channels.iterator();
 	}
 }

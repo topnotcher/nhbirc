@@ -204,6 +204,10 @@ class Client extends JFrame {
 				irc.part(src.getName() , cmd.getFinal(0) );
 			}
 			//otherwise do nothing.
+		} else if ( cmd.equals("CLOSE" ) ) {
+
+			if ( src.getType() == ChatWindow.Type.QUERY ) remove(src);
+
 		} else if ( cmd.equals("QUIT") ) {
 			irc.quit( cmd.getFinal(0) );
 
@@ -347,7 +351,7 @@ class Client extends JFrame {
 
 					//if I joined a channel, pop a new window...
 					if ( msg.getSource().getNick().equals(irc.nick()) ) {
-						win = new ChannelWindow( msg.getTarget().getChannel(), sync ) 
+						win = new ChannelWindow( msg.getTarget().getChannel(), sync );
 						add( win );
 				
 					//if I didn't, I'm already there...
@@ -380,7 +384,21 @@ class Client extends JFrame {
 					break;
 
 				case NICKCHANGE:
+					break;
+
 				case QUIT:
+					client.User user = sync.getUser( msg.getSource().getNick() );
+					ChatWindow userWindow;
+
+					for ( client.Channel channel : user ) if ( (userWindow = getWindow( channel.getName() )) != null) {
+						userWindow.put(
+							(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+								.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" QUIT ")
+								.append(" (",Color.darkGray).append( msg.getMessage() )
+								.append(")", Color.darkGray).indent(4)
+							);
+					}
+
 					break;
 
 				default:
@@ -427,9 +445,9 @@ class Client extends JFrame {
 					add(window);
 				}
 			}
-			//now we have a window to put the damn thing in...
 
-			window.put( new QueryMessage(msg));
+			//now we have a window to put the damn thing in...
+			window.put( new QueryMessage(msg) );
 		}
 	};
 
@@ -438,13 +456,15 @@ class Client extends JFrame {
 	 */
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
-			
+
 			//@TODO
 			if ( ! (e.getSource() instanceof ChatWindow) ) 
 				throw new RuntimeException("Why am I receiving commands from a non-chat window???");
 
 			ChatWindow src = (ChatWindow)e.getSource();
 			String cmd = e.getActionCommand();
+
+			debug.put("CMD: ["+src.getName()+"] "+cmd);
 
 			if ( cmd.length() < 1 ) return;
 
@@ -453,7 +473,6 @@ class Client extends JFrame {
 
 			//if it's in a status window and it doesn't start with a /, do nothing
 			} else if ( src.getType() == ChatWindow.Type.STATUS ) {
-				System.out.println("received in status window...");
 
 			//otherwise, it is in some form of chat window, so send a message...
 			} else {
