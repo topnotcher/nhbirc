@@ -11,27 +11,53 @@ import java.util.List;
 
 class Client extends JFrame {
 
+	/**
+	 * IRC Connection object.
+	 */
 	private Connection irc;
 	
+	/**
+	 * Two status windows.
+	 */
 	private ChatWindow status, debug;
 
+	/**
+	 * Tabs to switch between status/pm/channel windows.
+	 */
 	private JTabbedPane tabs;
 
+	/**
+	 * List of the windows (this may seem redundant as
+	 * the windows are stored in the JTabbedPane,
+	 * but each chat window isn't necessarily a component,
+	 * it simply provides a component to display in the JTabbedPane,
+	 * so there are potentially cases in which it is not possible
+	 * to get the instance of ChatWindow from the JTabbedPane
+	 */
 	private List<ChatWindow> windows;
 
-	private client.9SyncManager sync;
+	/**
+	 * Channel state syncing.
+	 */
+	private client.SyncManager sync;
 
+	/**
+	 * Default channel to join.
+	 * @TODO connection dialog.
+	 */
+	private final String CHAN = "#foo";
+
+	/**
+	 * Basic standalone starter
+	 */
 	public static void main(String[] argv) {
 		new Client();
 	}
-
-	private final String CHAN = "#foo";
 
 	/**
 	 * **BASIC** prototype.
 	 */
 	private Client() {
-		irc = new Connection("irc.jaundies.com", 6667, "fubar");
 		
 		setSize(1000,800);
 
@@ -49,24 +75,37 @@ class Client extends JFrame {
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
 	
 		add( debug = new GenericChatWindow("Debug", ChatWindow.Type.STATUS) );
-
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
+
+		status.put("Creating a new IRC connection...");
+
+		//create a new IRC connection
+		irc = new Connection("irc.jaundies.com", 6667, "fubar");
+
 
 		//prototyping purposes, just receive ALL messages...
 		irc.addMessageHandler(messageHandler);
 
+		/**
+		 * IMPORTANT: Sync is registered after messageHandler.
+		 * This class implicitly relies on the order guarantees by
+		 * Connection.registerMessageHandler()
+		 *
+		 * @see Connection.registerMessageHandler() for more information
+		 */
 		sync = new client.SyncManager(irc);
 
 		try {
 			//@TODO
 			irc.connect();
 		} catch (java.io.IOException e) {
+			//@TODO...
 			e.printStackTrace();
 		}
 
 		irc.join( CHAN );
 
-		System.out.println("Thread is going to sleep...");
+		System.out.println("Thread sleeeeeping.");
 
 		synchronized(irc) {
 			try {
@@ -81,7 +120,12 @@ class Client extends JFrame {
 		System.exit(0);
 	}
 
-
+	/**
+	 * Get the chat window with thespecified name
+	 * 
+	 * @param name name of the ChatWindow to retrieve.
+	 * @return chat window with the specified name, or null if no such window.
+	 */
 	private ChatWindow getWindow(String name) {
 		//heh this is efficient :/
 		for (ChatWindow c : windows) 
@@ -90,25 +134,55 @@ class Client extends JFrame {
 
 		return null;
 	}
-
+	
+	/**
+	 * Remove teh specified chat window from the list of windows
+	 * and the tabbed pane.
+	 *
+	 * @param c ChatWindow to remove
+	 */
 	private void remove(ChatWindow c) {
+		
+		//remove the tab.
 		tabs.remove(c.getContentPane());
+
+		//forgot about the chatwindow
 		windows.remove(c);
+
+		//and ignore its commands
+		c.removeActionListener( commandListener );
 	}
 
+	/**
+	 * Add the specified chat window to the list of windows
+	 * and the tabbed pane.
+	 *
+	 * @param c ChatWindow to add
+	 */
 	private void add(ChatWindow c) {
+
+		//listen to commands from the window
+		c.addActionListener( commandListener );
+
+		//since the chat window is not necessarily a JComponent,
+		//we need to extract the contentPane
 		tabs.addTab(c.getName(), c.getContentPane());
+
+		//add it to the list of chatwindows
 		windows.add(c);
+
+		//and select the new tab.
 		tabs.setSelectedComponent( c.getContentPane() );
 	}
 
 	/**
 	 * Handles a "slash command"
+	 *
+	 * @param src the ChatWindow that initiated this command
+	 * @param msg the command string from the ChatWindow.
 	 */
 	private void handleCommand(ChatWindow src, String msg) {
 		Command cmd = new Command(msg);
-
-		System.out.println("CMD: '" +cmd.cmd+"'");
 
 		if ( cmd.equals("JOIN") && cmd.numArgs() >= 1 ) {
 			irc.join( cmd.getArg(0) );
@@ -144,22 +218,36 @@ class Client extends JFrame {
 		}
 	}
 
-	private class Command {
+	/**
+	 * Parses a /Commanmd from a ChatWindow
+	 * and provides access to the arguments.
+	 */
+	private static class Command {
 
 		String cmd;
 		String msg;
 		String[] args;
 
+		/**
+		 * Parse the command
+		 * 
+		 * @param msg The command (includeing /) to parse.
+		 */
 		private Command(String msg) {
 			int sp = msg.indexOf(' ');
 
 			//it's a command like '/part' with no arguments...
 			if (sp == -1) sp = msg.length();
 
+			//cut off the 1, up to the first space.
+			//and convert to uppercase for simple matching.
 			this.cmd = msg.substring(1,sp).toUpperCase();
 
+			//if there was no first space, there are no arguments
 			if ( msg.length() == sp )
 				args = null;
+
+			//otherwise, parse the argument list.
 			else {
 				msg = msg.substring( sp + 1 );
 				args = msg.split(" ");
@@ -174,35 +262,50 @@ class Client extends JFrame {
 			return args[n];
 		}
 
+		/**
+		 * Most IRC commands have the followin format:
+		 * /COMMAND[ ARG0[ ARG1 ... [ARGN][ FINAL argument that may include spaces]
+		 * This method returns the final argument, given an index of 
+		 * args at which to begin concatenating
+		 *
+		 * NOTE: this will silently handle out of bounds errors by returning an empty string.
+		 *
+		 * @param n index of args at which to begin concatenating.
+		 * @return Concatenation of all arguements beginning at index n and separted by spaces.
+		 */
 		private String getFinal(int n) {
 			String ret = "";
 
 			for ( int i = n; args != null && i < args.length; ++i) 
-				ret += args[i];
+				ret += " " + args[i];
 
 			return ret;
 		}
 
 		private boolean equals(String s) {
-			return cmd.equals(s);
+			return cmd.equals(s.toUpperCase());
 		}
 	}
 
 	/**
-	 * for prototyping, just send all privmsgs to a window...
+	 * Handles Message(s) from the IRC Message Dispatcher.
 	 */
 	private MessageHandler messageHandler = new MessageHandler() {
 
-		//and put all PMS whether channel or private in one window...
+		/**
+		 * Handle a message...
+		 */
 		public void handle(Message msg) { 
 			switch(msg.getType()) {
-			
+		
+				//all user->user/channel messages.
 				case CHANNEL:
 				case ACTION:
 				case QUERY: 
 				case NOTICE:
 					handlePM(msg);
 					break;
+
 				case PART:
 		
 					ChatWindow window = getWindow(msg.getTarget().getChannel());
@@ -210,6 +313,8 @@ class Client extends JFrame {
 					if ( window != null ) {
 			
 						//this is ME leaving...
+						//note that when I type /part, it just SENDS the part command
+						//the window isn't removed until the server responds with a PART reply...
 						if ( msg.getSource().getNick().equals( irc.nick() ) ) 
 							remove(window);
 
@@ -218,7 +323,7 @@ class Client extends JFrame {
 								(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 									.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" left ")
 									.append(msg.getTarget().toString(),Color.cyan).append(" (",Color.darkGray).append( msg.getMessage() )
-									.append(")", Color.darkGray)
+									.append(")", Color.darkGray).indent(4)
 							);
 					}
 
@@ -227,10 +332,11 @@ class Client extends JFrame {
 				case JOIN:
 					ChatWindow win = null;
 
+					//if I joined a channel, pop a new window...
 					if ( msg.getSource().getNick().equals(irc.nick()) ) {
-						win = new ChannelWindow( msg.getTarget().getChannel(), sync );
-						win.addActionListener(commandListener);
-						add( win );
+						add ( (ChatWindow) new ChannelWindow( msg.getTarget().getChannel(), sync ) );
+				
+					//if I didn't, I'm already there...
 					}  else {
 						win = getWindow( msg.getTarget().getChannel() );
 					}
@@ -240,13 +346,13 @@ class Client extends JFrame {
 						win.put((new PaintableMessage())
 							.append("--> ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 							.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" has joined ")
-							.append(msg.getTarget().toString(),Color.cyan)
+							.append(msg.getTarget().toString(),Color.cyan).indent(4)
 						);
 					}
 
 					break;
 				case MOTD:
-					status.put((new PaintableMessage()).append("[",Color.gray).append("MOTD",Color.blue).append("] ",Color.gray).append(msg.getMessage() ));
+					status.put((new PaintableMessage()).append("[",Color.gray).append("MOTD",Color.blue).append("] ",Color.gray).append(msg.getMessage() ).indent(7));
 					break;
 
 				case NICKCHANGE:
@@ -327,9 +433,8 @@ class Client extends JFrame {
 
 			//otherwise, it is in some form of chat window, so send a message...
 			} else {
-				System.out.println("some form of Query");
 				irc.msg( src.getName() , cmd );
-				src.put( "<" + irc.nick() + "> " + cmd );
+				src.put( (new PaintableMessage()).append("<").append(irc.nick(),Color.orange).append("> ").append(cmd, Color.white));
 			}
 		}
 	};

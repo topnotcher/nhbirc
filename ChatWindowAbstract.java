@@ -71,6 +71,13 @@ abstract class ChatWindowAbstract extends JPanel implements ActionListener, Chat
 		listeners.add(l);
 	}
 
+	public void removeActionListener(ActionListener l) {
+		if (listeners == null || l == null)
+			return;
+
+		listeners.remove(l);
+	}
+
 	public void actionPerformed(ActionEvent e) {
 		
 		//if no one is listening..

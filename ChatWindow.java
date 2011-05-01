@@ -19,5 +19,7 @@ interface ChatWindow {
 
 	public void addActionListener(ActionListener e);
 
+	public void removeActionListener(ActionListener e);
+
 	public Component getContentPane();
 }
