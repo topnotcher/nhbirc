@@ -102,10 +102,11 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 
 			Integer[] rows = getRows( line ); 
 
-			for (int i = rows.length - 1, offset = 0; i >= 0 && remaining > 0; offset += rows[ i ], --i, --remaining ) {
-			
-				g.drawString( line.substring(offset, offset + rows[ i ]), 
-					PAD + ((i == rows.length-1)  ? 0 : INDENT ), 
+			for (int i = rows.length - 1, offset = line.length(); i >= 0 && remaining > 0; offset -= rows[ i ], --i, --remaining ) {
+
+
+				g.drawString( line.substring(offset - rows[ i ], offset), 
+					PAD + ((i == 0)  ? 0 : INDENT ), 
 					remaining*FONTHEIGHT
 				);
 			}
@@ -146,7 +147,6 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 			if ( width <= remaining ) {
 				row += tok.length();
 				remaining -= width;
-				continue;
 
 			//in this case, the current token wn't fit in a row PERIOD,
 			//so it definitely *has* to be split up.
@@ -162,33 +162,32 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 					if  ( width <= remaining ) {
 						remaining -= width;
 						row += 1;
-						continue;
 					} else {
 						rows.add(row);
-						row = 0;
-						remaining = WIDTH - METRICS.stringWidth("    ");
+						row = 1;
+						remaining = WIDTH - METRICS.stringWidth("    ")-width;
 					}
 				}
-				continue;
 			
 			//in this case, the token *could* fit in a row,
 			//but it won't fit in the remaining space of this one
 			//so we finish the row off and start a new one.
 			//note that everytime we start a new row, we indent four spaces.
 			} else {
-		
 				rows.add(row);
 				//in any case...rows.add(row);
-				row = 0;
-				remaining = WIDTH - METRICS.stringWidth("    ");
-			}		
+				row = tok.length();
+				remaining = WIDTH - METRICS.stringWidth("    ") - METRICS.stringWidth(tok);
+			}
 		}
 
 
 		//this is a bit dirty
 		//
-		if (row != 0)
+		if (row != 0) {
 			rows.add(row);
+		}
+
 
 
 		return rows.toArray(new Integer[rows.size()]);
