@@ -28,7 +28,6 @@ class PaintableString implements PaintableText {
 	}
 
 	private int  draw(Graphics g, String text) {
-		System.out.println("Draw: " + text);
 
 		Color def = g.getColor();
 

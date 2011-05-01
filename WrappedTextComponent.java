@@ -45,13 +45,16 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 	public WrappedTextComponent() { 
 	}
 
+	public void append( String text ) {
+		append( new PaintableString( text ) );
+	}
+
 	/**
 	 * Append a line of text to the component
 	 */
-	public void append( String text ) {
+	public void append( PaintableText text ) {
 
-		TextNode add = new TextNode( (new PaintableMessage()).append( text , java.awt.Color.green) );
-//		TextNode add = new TextNode( new PaintableString(text) );
+		TextNode add = new TextNode( text );
 
 		if ( head != null) {
 			add.prev = null;

@@ -73,7 +73,7 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 		in.field.setBackground(Color.black);
 		in.field.setForeground(Color.green);
 
-		setFont(new Font("Monospaced", Font.PLAIN, 12));
+		setFont(new Font("Monospaced", Font.PLAIN, 14));
 
 
 
@@ -117,7 +117,11 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 //		return out;
 //	}
 
-	public void append(String text) {
+	public void append( String text ) {
+		area.append(text);
+	}
+
+	public void append( PaintableText text ) {
 		area.append(text);
 	}
 

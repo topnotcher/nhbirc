@@ -49,6 +49,10 @@ abstract class ChatWindowAbstract extends JPanel implements ActionListener, Chat
 		console.append(msg);
 	}
 
+	public void put(PaintableText msg) {
+		console.append(msg);
+	}
+
 	public java.awt.Component getContentPane() {
 		return this;
 	}

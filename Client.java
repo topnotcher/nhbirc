@@ -288,17 +288,20 @@ class Client extends JFrame {
 			}
 			//now we have a window to put the damn thing in...
 
+			PaintableMessage text = new PaintableMessage();
 			switch ( msg.getType() ) {
-				case ACTION:	
-					window.put("*" + msg.getSource().getNick() + " " +msg.getMessage() );
+				case ACTION:
+					text.append("*" + msg.getSource().getNick() + " " +msg.getMessage() );
 					break;
 				case NOTICE:
-					window.put("-" + msg.getSource().getNick() + "- "+msg.getMessage() );
+					text.append("-").append( msg.getSource().getNick() , java.awt.Color.red ).append("- "+msg.getMessage() );
 					break;
 				default:
-					window.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+					text.append( "<").append( msg.getSource().getNick(), java.awt.Color.yellow).append( "> " + msg.getMessage() );
 					break;
 			}
+
+			window.put(text);
 		}
 	};
 

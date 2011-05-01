@@ -15,6 +15,8 @@ interface ChatWindow {
 
 	public void put(String msg);
 
+	public void put(PaintableText msg);
+
 	public void addActionListener(ActionListener e);
 
 	public Component getContentPane();

@@ -66,7 +66,6 @@ class PaintableMessage implements PaintableText {
 			if ( idx + string.getText().length() > end )
 				last = end - idx;
 
-			System.out.println("Taking substr: "+first +", "+last);
 			width = g.getFontMetrics().stringWidth(string.getText().substring(first,last));
 
 
