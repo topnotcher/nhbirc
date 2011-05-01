@@ -13,7 +13,7 @@ import java.util.NoSuchElementException;
 /**
  * A component that displays word-wrapped lines of text.
  */
-class WrappedTextComponent extends JComponent implements Iterable<String> {
+class WrappedTextComponent extends JComponent implements Iterable<PaintableText> {
 
 	/**
 	 * Number of lines of text to store.
@@ -50,7 +50,8 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 	 */
 	public void append( String text ) {
 
-		TextNode add = new TextNode( text );
+		TextNode add = new TextNode( (new PaintableMessage()).append( text , java.awt.Color.green) );
+//		TextNode add = new TextNode( new PaintableString(text) );
 
 		if ( head != null) {
 			add.prev = null;
@@ -95,20 +96,24 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 		final int INDENT = METRICS.stringWidth("    ");
 
 		int remaining = ROWS;
-		Iterator<String> lines = iterator();
+		Iterator<PaintableText> lines = iterator();
 
 		while ( lines.hasNext() && remaining > 0 ) {
-			String line = lines.next();
+			PaintableText text = lines.next();
+			String line = text.getText();
 
 			Integer[] rows = getRows( line ); 
 
 			for (int i = rows.length - 1, offset = line.length(); i >= 0 && remaining > 0; offset -= rows[ i ], --i, --remaining ) {
 
+				text.paint( g.create( 
+					PAD + ((i == 0)  ? 0 : INDENT ), 
+					(remaining-1)*FONTHEIGHT, WIDTH, FONTHEIGHT) , offset-rows[i], offset);
 
-				g.drawString( line.substring(offset - rows[ i ], offset), 
+				/*g.drawString( line.substring(offset - rows[ i ], offset), 
 					PAD + ((i == 0)  ? 0 : INDENT ), 
 					remaining*FONTHEIGHT
-				);
+				);*/
 			}
 		}
 	}
@@ -181,27 +186,21 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 			}
 		}
 
-
-		//this is a bit dirty
-		//
-		if (row != 0) {
+		if (row != 0) 
 			rows.add(row);
-		}
-
-
 
 		return rows.toArray(new Integer[rows.size()]);
 	}
 
-	public Iterator<String> iterator() {
-		return new Iterator<String>() {
+	public Iterator<PaintableText> iterator() {
+		return new Iterator<PaintableText>() {
 			private TextNode cur = null;
 
 			public boolean hasNext() {
 				return ( cur == null && head != null ) || ( cur != null && cur.next != null );
 			}
 
-			public String next() throws NoSuchElementException {
+			public PaintableText next() throws NoSuchElementException {
 				
 				if ( cur == null && head != null)
 					cur = head;
@@ -222,7 +221,7 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 	}
 
 	private class TextNode {
-		private String text;
+		private PaintableText text;
 
 		private TextNode next = null;
 
@@ -234,7 +233,7 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 		//and drop the last node from the list.
 		private TextNode prev = null;
  
-		private TextNode( String text ) {
+		private TextNode( PaintableText text ) {
 			this.text = text;
 		}
 	}
