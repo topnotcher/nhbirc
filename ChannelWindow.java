@@ -20,6 +20,11 @@ public class ChannelWindow extends ChatWindowAbstract {
 	public ChannelWindow(String channel_name, client.SyncManager sync) {
 		super(channel_name, ChannelWindow.Type.CHANNEL);
 
+		//note that the sync manager will create the channel
+		//on the fly if it doesn't exist
+		//the methods are synchronized, so when the syncmanager gets the
+		//JOIN for the channel, it will pull back the same channel instance.
+		//This means that the order in which the message handlers are run is irrelevant
 		channel = sync.getChannel(getName());
 
 		list = new ChannelListModel();	
