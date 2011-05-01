@@ -3,6 +3,8 @@ import java.awt.BorderLayout;
 //import javax.swing.JFrame;
 import javax.swing.*;
 
+import java.awt.Color;
+
 import irc.*;
 
 import java.util.List;
@@ -213,7 +215,12 @@ class Client extends JFrame {
 							remove(window);
 
 						else 
-							window.put(" <-- [" + msg.getSource() + "] left " + msg.getTarget() + "(" + msg.getMessage() + ")");
+							window.put(
+								(new PaintableMessage()).append(" <-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+									.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" left ")
+									.append(msg.getTarget().toString(),Color.cyan).append(" (",Color.darkGray).append( msg.getMessage() )
+									.append(")", Color.darkGray)
+							);
 					}
 
 					break;
@@ -230,12 +237,17 @@ class Client extends JFrame {
 					}
 
 					//in every case:
-					if (win != null) 
-						win.put(" --> [" + msg.getSource() + "] has joined " + msg.getTarget());
+					if (win != null)  {
+						win.put((new PaintableMessage())
+							.append(" --> ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+							.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" has joined ")
+							.append(msg.getTarget().toString(),Color.cyan)
+						);
+					}
 
 					break;
 				case MOTD:
-					status.put("[MOTD] " + msg.getMessage() );
+					status.put((new PaintableMessage()).append("[",Color.gray).append("MOTD",Color.blue).append("] ",Color.gray).append(msg.getMessage() ));
 					break;
 
 				case NICKCHANGE:
@@ -291,10 +303,10 @@ class Client extends JFrame {
 			PaintableMessage text = new PaintableMessage();
 			switch ( msg.getType() ) {
 				case ACTION:
-					text.append("*" + msg.getSource().getNick() + " " +msg.getMessage() );
+					text.append("*",Color.red).append(msg.getSource().getNick(),Color.orange).append(" " +msg.getMessage() );
 					break;
 				case NOTICE:
-					text.append("-").append( msg.getSource().getNick() , java.awt.Color.red ).append("- "+msg.getMessage() );
+					text.append("-",Color.darkGray).append( msg.getSource().getNick() , java.awt.Color.magenta ).append("- ",Color.darkGray).append(msg.getMessage() );
 					break;
 				default:
 					text.append( "<").append( msg.getSource().getNick(), java.awt.Color.yellow).append( "> " + msg.getMessage() );
