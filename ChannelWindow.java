@@ -53,7 +53,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 
 		//favor the left side???
-		chan.setResizeWeight(0.9);
+		chan.setResizeWeight(0.95);
 
 		add(chan,BorderLayout.CENTER);
 

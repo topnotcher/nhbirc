@@ -215,6 +215,19 @@ class Client extends JFrame {
 			
 			ChatWindow c = getWindow(target);
 			///fss why am I doin this.
+		} else if ( cmd.equals("ME" ) ) {
+
+			// /me arg1"
+
+			if ( cmd.numArgs() < 1) return;
+			
+			if ( src.getType() != ChatWindow.Type.QUERY && src.getType() != ChatWindow.Type.CHANNEL) return;	
+
+			irc.action( src.getName(), cmd.getFinal(0) );
+
+			src.put( (new PaintableMessage())
+				.append("*",Color.red) . append(irc.nick(),Color.orange) . append("*",Color.red) . append(" " +cmd.getFinal(0), Color.white )
+			);
 		}
 	}
 
@@ -334,7 +347,8 @@ class Client extends JFrame {
 
 					//if I joined a channel, pop a new window...
 					if ( msg.getSource().getNick().equals(irc.nick()) ) {
-						add ( (ChatWindow) new ChannelWindow( msg.getTarget().getChannel(), sync ) );
+						win = new ChannelWindow( msg.getTarget().getChannel(), sync ) 
+						add( win );
 				
 					//if I didn't, I'm already there...
 					}  else {
@@ -353,6 +367,16 @@ class Client extends JFrame {
 					break;
 				case MOTD:
 					status.put((new PaintableMessage()).append("[",Color.gray).append("MOTD",Color.blue).append("] ",Color.gray).append(msg.getMessage() ).indent(7));
+					break;
+
+				case TOPIC:
+					ChatWindow c = getWindow( msg.getArg(2) );
+					if ( c == null ) break;
+
+					c.put( (new PaintableMessage()).indent(4)
+						.append("--- ", Color.lightGray).append( msg.getArg(2)+": ", Color.white ).append( msg.getMessage(), Color.cyan )
+					);
+
 					break;
 
 				case NICKCHANGE:
