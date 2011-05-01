@@ -40,8 +40,9 @@ public class ChannelWindow extends ChatWindowAbstract {
 		JList userlist = new JList(list);
 		
 		userlist.setBackground(Color.black);
-		userlist.setForeground(Color.green);
+		userlist.setForeground(Color.white);
 
+		userlist.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 13));
 
 		chan.setRightComponent( new JScrollPane( userlist ) );
 
