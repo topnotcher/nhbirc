@@ -6,18 +6,34 @@ class PaintableMessage implements PaintableText {
 
 	private List<PaintableText> strings;
 
+	private int indent = 4;
+
+	private int	maxIndent = 0;
+
 	public PaintableMessage() {
 		strings = new util.LinkedList<PaintableText>();
 	}
 	
 	public PaintableMessage append(PaintableText text) {
+		if (text.getIndent() > maxIndent)
+			maxIndent = text.getIndent();
+
 		strings.add(text);
 		return this;
 	}
 
 	public PaintableMessage append(String text, Color color) {
-		strings.add(new PaintableString(text,color));
+		append(new PaintableString(text,color));
 		return this;
+	}
+
+	public PaintableMessage indent(int indent) {
+		this.indent = indent;
+		return this;
+	}
+
+	public int getIndent() {
+		return maxIndent+indent;
 	}
 
 	public PaintableMessage append(String text) {

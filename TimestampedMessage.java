@@ -16,7 +16,9 @@ class TimestampedMessage extends PaintableMessage {
 	}
 
 	public TimestampedMessage(PaintableText text) {
-		append( formatter.format(new Date()),  Color.darkGray);
+		String date = formatter.format(new Date());
+		indent(date.length());
+		append( date,  Color.darkGray);
 		append(text);
 	}
 }

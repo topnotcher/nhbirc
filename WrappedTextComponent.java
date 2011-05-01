@@ -96,21 +96,25 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 		final int ROWS = (int)(HEIGHT/FONTHEIGHT);
 
-		final int INDENT = METRICS.stringWidth("    ");
+		final int INDENT = METRICS.stringWidth(" ");
+
+		int indent;
 
 		int remaining = ROWS;
 		Iterator<PaintableText> lines = iterator();
 
 		while ( lines.hasNext() && remaining > 0 ) {
+
 			PaintableText text = lines.next();
 			String line = text.getText();
+			indent = text.getIndent();
 
-			Integer[] rows = getRows( line ); 
-
+			Integer[] rows = getRows( line, indent ); 
+					
 			for (int i = rows.length - 1, offset = line.length(); i >= 0 && remaining > 0; offset -= rows[ i ], --i, --remaining ) {
 
 				text.paint( g.create(
-						PAD + ((i == 0)  ? 0 : INDENT ), 
+						PAD + ((i == 0)  ? 0 : indent*INDENT ), 
 						(remaining)*FONTHEIGHT-METRICS.getHeight(), 
 						WIDTH, 
 						METRICS.getHeight()
@@ -125,7 +129,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 	 * @TODO find a better way to organize this method.
 	 * Especially find a better way to handle the four space indent
 	 */
-	private Integer[] getRows( String line ) {
+	private Integer[] getRows( String line, int indent ) {
 
 		final FontMetrics METRICS = getFontMetrics(getFont());
 		final int WIDTH = getWidth() - 2*PAD;
@@ -141,7 +145,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 		//I use "    " as an indent
 		//this is a cheap hack to fix an infinite loop
 		//if the window is too small
-		if ( METRICS.stringWidth("    ") > WIDTH ) 
+		if ( METRICS.stringWidth(" ")*indent > WIDTH ) 
 			return new Integer[0];
 
 		//first, we attempt to split the thinggy at spaces...
@@ -173,7 +177,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 					} else {
 						rows.add(row);
 						row = 1;
-						remaining = WIDTH - METRICS.stringWidth("    ")-width;
+						remaining = WIDTH - METRICS.stringWidth(" ")*indent-width;
 					}
 				}
 			
@@ -185,7 +189,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 				rows.add(row);
 				//in any case...rows.add(row);
 				row = tok.length();
-				remaining = WIDTH - METRICS.stringWidth("    ") - METRICS.stringWidth(tok);
+				remaining = WIDTH - METRICS.stringWidth(" ")*indent - METRICS.stringWidth(tok);
 			}
 		}
 

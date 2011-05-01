@@ -39,4 +39,8 @@ class PaintableString implements PaintableText {
 
 		return g.getFontMetrics().stringWidth(text);
 	}
+
+	public int getIndent() {
+		return 0;
+	}
 }

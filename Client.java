@@ -216,7 +216,7 @@ class Client extends JFrame {
 
 						else 
 							window.put(
-								(new PaintableMessage()).append(" <-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+								(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 									.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" left ")
 									.append(msg.getTarget().toString(),Color.cyan).append(" (",Color.darkGray).append( msg.getMessage() )
 									.append(")", Color.darkGray)
@@ -239,7 +239,7 @@ class Client extends JFrame {
 					//in every case:
 					if (win != null)  {
 						win.put((new PaintableMessage())
-							.append(" --> ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+							.append("--> ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 							.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" has joined ")
 							.append(msg.getTarget().toString(),Color.cyan)
 						);
@@ -300,20 +300,7 @@ class Client extends JFrame {
 			}
 			//now we have a window to put the damn thing in...
 
-			PaintableMessage text = new PaintableMessage();
-			switch ( msg.getType() ) {
-				case ACTION:
-					text.append("*",Color.red).append(msg.getSource().getNick(),Color.orange).append("*",Color.red).append(" " +msg.getMessage() );
-					break;
-				case NOTICE:
-					text.append("-",Color.darkGray).append( msg.getSource().getNick() , java.awt.Color.magenta ).append("- ",Color.darkGray).append(msg.getMessage() );
-					break;
-				default:
-					text.append( "<").append( msg.getSource().getNick(), java.awt.Color.yellow).append( "> " + msg.getMessage() );
-					break;
-			}
-
-			window.put(text);
+			window.put( new QueryMessage(msg));
 		}
 	};
 

@@ -8,5 +8,5 @@ interface PaintableText {
 
 	public String getText();
 
-	public String getIndent();
+	public int getIndent();
 }
