@@ -33,7 +33,7 @@ class PaintableString implements PaintableText {
 
 		if ( color != null ) g.setColor(color);
 
-		g.drawString(text,0, g.getFontMetrics().getHeight());
+		g.drawString(text,0, g.getFontMetrics().getHeight() - g.getFontMetrics().getMaxDescent() );
 
 		g.setColor(def);
 
