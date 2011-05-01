@@ -49,7 +49,7 @@ public class Connection {
 	private int port;
 
 	//nickname, username, realname.
-	private String nick,user,real;
+	private String nick,user,real,pass;
 
 	//queue of messages to send.
 	private BlockingQueue<OutgoingMessage> sendQ;
@@ -76,7 +76,6 @@ public class Connection {
 
 	private long last_ping = 0;
 
-
 	public Connection(String host, int port, String nick) {
 		this(host,port,nick,nick);
 	}
@@ -95,7 +94,14 @@ public class Connection {
 
 		state = State.DISCONNECTED;
 	}
+	
+	public void setPass(String pass) {
+		this.pass = pass;
+	}
 
+	/**
+	 * Change the connection state: disconnected->connected->registered.
+	 */
 	private void setState(State ns) {
 		state = ns;
 
@@ -107,14 +113,10 @@ public class Connection {
 	//attempt to connect
 	public void connect() throws java.io.IOException {
 
-		//will replace these with own implementation of queue/prioirty queue later.
-		sendQ = new PriorityBlockingQueue<OutgoingMessage>();
-		recvQ = new PriorityBlockingQueue<Message>();
-
-
 		//connect
 		//(blocks until connected)
 		conn = new IrcConnection();
+
 
 		//handle messages in a separate thread
 		//so the socket I/O never pauses
@@ -139,8 +141,10 @@ public class Connection {
 		register();
 
 		try {
-
-			//wait until this changes its state..
+	
+			/**
+			 * Block for a state change, up to 30 seconds.
+			 */
 			synchronized(this) {
 				this.wait(30000); 
 			}
@@ -148,6 +152,11 @@ public class Connection {
 		} catch (InterruptedException e) {
 		}
 
+		/**
+		 * 	Either state changed, or 30 seconds passed,
+		 * 	so if the connection isn't registered, something went wrong.
+		 */
+	
 		if ( state != state.REGISTERED )
 			throw new RuntimeException("REGISTER timeout after 30 seconds");
 
@@ -156,6 +165,13 @@ public class Connection {
 
 	//initiate registration
 	private void register() {
+		//All the commands in this method must go through sendRaw.
+
+		//command order per RFC2812
+
+		if ( pass != null )
+			sendRaw("PASS "+pass);
+
 		sendRaw("NICK " +nick);
 		sendRaw("USER " + user + " 0 * : " + real);
 	}
@@ -241,7 +257,14 @@ public class Connection {
 		send(cmd,msg,Priority.MEDIUM);
 	}
 
+	/**
+	 * NOTE: THIS CANNOT BE USED FOR REGISTERING.
+	 */
 	public void send(String cmd, String msg, Priority p) {
+
+		if ( state != State.REGISTERED )
+			throw new RuntimeException("Cannot execute commands until the connection is registered.");
+
 		sendRaw(cmd + " :" + msg, p);
 	}
 
@@ -250,6 +273,10 @@ public class Connection {
 	}
 
 	private void sendRaw(String cmd, Priority p) {
+
+		if ( state == state.DISCONNECTED ) 
+			//@TODO
+			throw new RuntimeException("Trying to execute commands in a disconnected state...?");
 
 		//@TODO error checking
 		//offer returns bool.
@@ -417,7 +444,7 @@ public class Connection {
 
 		public void run() {
 
-			while(true) {
+			while( state != state.DISCONNECTED ) {
 
 				Message msg = null;
 
@@ -487,9 +514,13 @@ public class Connection {
 
 			last_tx = last_rx = System.currentTimeMillis();
 
+			//will replace these with own implementation of queue/prioirty queue later.
+			sendQ = new PriorityBlockingQueue<OutgoingMessage>();
+			recvQ = new PriorityBlockingQueue<Message>();
+
 			//setting state = connected starts all the fun loops..
 			setState(state.CONNECTED);
-			
+		
 			(new Thread( readerThread, "Socket Read" )).start();
 			(new Thread( writerThread, "Socket Write" )).start();
 		}
