@@ -221,6 +221,22 @@ public class Connection {
 		send("PRIVMSG " + target, msg, p);
 	}
 
+	public void action(String target, String msg) {
+		action(target,msg,Priority.MEDIUM);
+	}
+
+	public void action(String target, String msg, Priority p) {
+		ctcp(target, "ACTION", msg, p);
+	}
+
+	public void ctcp(String target, String command,String msg, Priority p) {
+		msg(target,"\u0001" + command + " " + msg + "\u0001",p);
+	}
+
+	public void ctcp(String target, String command, String msg) {
+		ctcp(target,command,msg,Priority.MEDIUM);
+	}
+
 	public void notice(String target, String msg) {
 		notice(target, msg, Priority.MEDIUM);
 	}
