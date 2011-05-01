@@ -303,7 +303,7 @@ class Client extends JFrame {
 			PaintableMessage text = new PaintableMessage();
 			switch ( msg.getType() ) {
 				case ACTION:
-					text.append("*",Color.red).append(msg.getSource().getNick(),Color.orange).append(" " +msg.getMessage() );
+					text.append("*",Color.red).append(msg.getSource().getNick(),Color.orange).append("*",Color.red).append(" " +msg.getMessage() );
 					break;
 				case NOTICE:
 					text.append("-",Color.darkGray).append( msg.getSource().getNick() , java.awt.Color.magenta ).append("- ",Color.darkGray).append(msg.getMessage() );
