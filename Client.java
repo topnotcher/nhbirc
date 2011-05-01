@@ -11,7 +11,7 @@ class Client extends JFrame {
 
 	private Connection irc;
 	
-	private ChatWindow status, channel;
+	private ChatWindow status, debug;
 
 	private JTabbedPane tabs;
 
@@ -45,8 +45,11 @@ class Client extends JFrame {
 
 		//tabs contain a status window.
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
+	
+		add( debug = new GenericChatWindow("Debug", ChatWindow.Type.STATUS) );
 
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
+		
 
 		sync = new client.SyncManager(irc);
 
@@ -74,6 +77,17 @@ class Client extends JFrame {
 
 		System.out.println("IRC changed it's state... goodbye.");
 
+		System.exit(0);
+	}
+
+
+	private ChatWindow getWindow(String name) {
+		//heh this is efficient :/
+		for (ChatWindow c : windows) 
+			if ( c.getName().equals(name) )
+				return c;
+
+		return null;
 	}
 
 	private void remove(ChatWindow c) {
@@ -84,6 +98,7 @@ class Client extends JFrame {
 	private void add(ChatWindow c) {
 		tabs.addTab(c.getName(), c.getContentPane());
 		windows.add(c);
+		tabs.setSelectedComponent( c.getContentPane() );
 	}
 
 	/**
@@ -116,7 +131,15 @@ class Client extends JFrame {
 			//otherwise do nothing.
 		} else if ( cmd.equals("QUIT") ) {
 			irc.quit( cmd.getFinal(0) );
-			System.exit(0);
+
+		} else if ( cmd.equals("MSG") ) {
+			if ( cmd.numArgs() < 2 ) return;
+			
+			String target = cmd.getArg(0);
+			String message = cmd.getFinal(1);
+			
+			ChatWindow c = getWindow(target);
+			///fss why am I doin this.
 		}
 	}
 
@@ -170,54 +193,112 @@ class Client extends JFrame {
 	private MessageHandler messageHandler = new MessageHandler() {
 
 		//and put all PMS whether channel or private in one window...
-		public void handle(Message msg) {
-
-			if ( msg.getType() == MessageType.CHANNEL || (msg.getType() == MessageType.ACTION && msg.getTarget().scope(MessageTarget.Scope.CHANNEL) ) ) {
-
-				for (ChatWindow c : windows) {
-					
-					if ( c.getType() == ChatWindow.Type.CHANNEL && c.getName().equals(msg.getTarget().getChannel()) ) {
-						
-						if ( msg.getType() == MessageType.ACTION )
-							c.put("*" + msg.getSource().getNick() + " " +msg.getMessage() );
-						else 
-							c.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
-						break;
-					}
-
-				}
-
-			} else if ( msg.getType() == MessageType.PART ) {
-
-				ChatWindow window = null;
-
-				for (ChatWindow w : windows) {
-					if ( w.getType() == ChatWindow.Type.CHANNEL && w.getName().equals(msg.getTarget().getChannel())) {
-						window = w;
-						break;
-					}
-				}
-
-				if ( window != null ) {
+		public void handle(Message msg) { 
+			switch(msg.getType()) {
 			
-					//this is ME leaving...
-					if ( msg.getSource().getNick().equals( irc.nick() ) ) 
-						remove(window);
+				case CHANNEL:
+				case ACTION:
+				case QUERY: 
+				case NOTICE:
+					handlePM(msg);
+					break;
+				case PART:
+		
+					ChatWindow window = getWindow(msg.getTarget().getChannel());
 
-					else 
-						window.put(" <-- " + msg.getSource().getNick() + " left the channel");
-				}
+					if ( window != null ) {
+			
+						//this is ME leaving...
+						if ( msg.getSource().getNick().equals( irc.nick() ) ) 
+							remove(window);
+
+						else 
+							window.put(" <-- [" + msg.getSource() + "] left " + msg.getTarget() + "(" + msg.getMessage() + ")");
+					}
+
+					break;
 				
+				case JOIN:
+					ChatWindow win = null;
+
+					if ( msg.getSource().getNick().equals(irc.nick()) ) {
+						win = new ChannelWindow( msg.getTarget().getChannel(), sync );
+						win.addActionListener(commandListener);
+						add( win );
+					}  else {
+						win = getWindow( msg.getTarget().getChannel() );
+					}
+
+					//in every case:
+					if (win != null) 
+						win.put(" --> [" + msg.getSource() + "] has joined " + msg.getTarget());
+
+					break;
+				case MOTD:
+					status.put("[MOTD] " + msg.getMessage() );
+					break;
+
+				case NICK:
+				case QUIT:
+					break;
+
+				default:
+					debug.put( msg.getRaw() );	
+					break;
+			}
+		}
+
+		/**
+		 * Handle PRIVMSG or NOTICE commands.
+		 */
+		private void handlePM(Message msg) {
 	
-			} else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
-				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel(), sync );
-				win.addActionListener(commandListener);
-				add( win );
-				tabs.setSelectedComponent( win.getContentPane() );
+
+			ChatWindow window = null;
+
+			//notices go to the currently selected window
+			//servers should only be sending notices
+			//but in case a server PMs, we handle that as a notice as well
+			if ( msg.getType() == MessageType.NOTICE || msg.getSource().scope(MessageTarget.Scope.SERVER) )  {
+				window = getWindow( tabs.getTitleAt(tabs.getSelectedIndex()) );
+
+				if (window == null)
+					return;
 			}
 
-			status.put( msg.getRaw() );	
+			//not a notice, to a channel.
+			else if (  msg.getTarget().scope(MessageTarget.Scope.CHANNEL) ) {
+				window = getWindow( msg.getTarget().getChannel() );
 
+				//don't open up new windows automatically for channels
+				//that should have been done anyway...
+				if (window == null)
+					return;
+
+			//it is not a notice, and not a channel message...
+			//so it must be a PM... from a user!
+			} else {
+					
+				window = getWindow( msg.getSource().getNick() );
+
+				if ( window == null ) {
+					window = new GenericChatWindow( msg.getSource().getNick() , ChatWindow.Type.QUERY );
+					add(window);
+				}
+			}
+			//now we have a window to put the damn thing in...
+
+			switch ( msg.getType() ) {
+				case ACTION:	
+					window.put("*" + msg.getSource().getNick() + " " +msg.getMessage() );
+					break;
+				case NOTICE:
+					window.put("-" + msg.getSource().getNick() + "- "+msg.getMessage() );
+					break;
+				default:
+					window.put( "<" + msg.getSource().getNick() + "> " + msg.getMessage() );
+					break;
+			}
 		}
 	};
 
@@ -241,9 +322,11 @@ class Client extends JFrame {
 
 			//if it's in a status window and it doesn't start with a /, do nothing
 			} else if ( src.getType() == ChatWindow.Type.STATUS ) {
-					
+				System.out.println("received in status window...");
+
 			//otherwise, it is in some form of chat window, so send a message...
 			} else {
+				System.out.println("some form of Query");
 				irc.msg( src.getName() , cmd );
 				src.put( "<" + irc.nick() + "> " + cmd );
 			}

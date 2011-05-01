@@ -49,10 +49,10 @@ public class MessageTarget {
 		if ( this.scope == Scope.USER )
 			return target.substring( 0, target.indexOf('!') );
 
-		if ( this.scope == Scope.NICK )
+		if ( this.scope == Scope.NICK || this.scope == Scope.SERVER )
 			return target;
 
-		throw new RuntimeException("Cannot get nick from that scope.");
+		throw new RuntimeException("NO nick in that scope.");
 	}
 
 	public String getUser() {
