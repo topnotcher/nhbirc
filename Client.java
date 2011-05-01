@@ -238,7 +238,7 @@ class Client extends JFrame {
 					status.put("[MOTD] " + msg.getMessage() );
 					break;
 
-				case NICK:
+				case NICKCHANGE:
 				case QUIT:
 					break;
 
