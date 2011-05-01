@@ -87,6 +87,84 @@ class Client extends JFrame {
 	}
 
 	/**
+	 * Handles a "slash command"
+	 */
+	private void handleCommand(ChatWindow src, String msg) {
+		Command cmd = new Command(msg);
+
+		System.out.println("CMD: '" +cmd.cmd+"'");
+
+		if ( cmd.equals("JOIN") && cmd.numArgs() >= 1 ) {
+			irc.join( cmd.getArg(0) );
+
+
+		//note thaton part, we only send a pART to teh server
+		//if the part is succesful, the server will send a PART back
+		//and then the channel window will close...
+		} else if ( cmd.equals("PART") ) {
+	
+			//there's channel specified in the command.
+			if ( cmd.numArgs() > 0 && cmd.getArg(0).charAt(0) == '#' ) {
+
+				irc.part(cmd.getArg(0), cmd.getFinal(1));
+
+			//there was no channel specified, but it was 
+			//run in a channel window
+			} else if ( src.getType() == ChatWindow.Type.CHANNEL ) {
+				irc.part(src.getName() , cmd.getFinal(0) );
+			}
+			//otherwise do nothing.
+		} else if ( cmd.equals("QUIT") ) {
+			irc.quit( cmd.getFinal(0) );
+			System.exit(0);
+		}
+	}
+
+	private class Command {
+
+		String cmd;
+		String msg;
+		String[] args;
+
+		private Command(String msg) {
+			int sp = msg.indexOf(' ');
+
+			//it's a command like '/part' with no arguments...
+			if (sp == -1) sp = msg.length();
+
+			this.cmd = msg.substring(1,sp).toUpperCase();
+
+			if ( msg.length() == sp )
+				args = null;
+			else {
+				msg = msg.substring( sp + 1 );
+				args = msg.split(" ");
+			}
+		}
+
+		private int numArgs() {
+			return (args == null) ? 0 : args.length;
+		}
+
+		private String getArg(int n) {
+			return args[n];
+		}
+
+		private String getFinal(int n) {
+			String ret = "";
+
+			for ( int i = n; args != null && i < args.length; ++i) 
+				ret += args[i];
+
+			return ret;
+		}
+
+		private boolean equals(String s) {
+			return cmd.equals(s);
+		}
+	}
+
+	/**
 	 * for prototyping, just send all privmsgs to a window...
 	 */
 	private MessageHandler messageHandler = new MessageHandler() {
@@ -149,22 +227,24 @@ class Client extends JFrame {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
 			
 			//@TODO
-			if ( ! (e.getSource() instanceof ChatWindow) )  
+			if ( ! (e.getSource() instanceof ChatWindow) ) 
 				throw new RuntimeException("Why am I receiving commands from a non-chat window???");
 
 			ChatWindow src = (ChatWindow)e.getSource();
 			String cmd = e.getActionCommand();
 
-			if ( src.getType() == ChatWindow.Type.STATUS ) {
-				int pos = cmd.indexOf(' ');
-				
-				if (pos == -1) return;
+			if ( cmd.length() < 1 ) return;
 
-				irc.send( cmd.substring(0,pos), cmd.substring(pos+1) );
+			if ( cmd.charAt(0) == '/' ) {
+				handleCommand(src, cmd);
 
+			//if it's in a status window and it doesn't start with a /, do nothing
+			} else if ( src.getType() == ChatWindow.Type.STATUS ) {
+					
+			//otherwise, it is in some form of chat window, so send a message...
 			} else {
-				irc.msg( src.getName() , e.getActionCommand() );
-				src.put("<" + irc.nick() + "> " + e.getActionCommand());
+				irc.msg( src.getName() , cmd );
+				src.put( "<" + irc.nick() + "> " + cmd );
 			}
 		}
 	};

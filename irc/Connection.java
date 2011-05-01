@@ -183,6 +183,16 @@ public class Connection {
 		//only set the nick on a successful reply...
 	}
 
+
+
+	public void part(String chan, String msg) {
+		send("PART " + chan, msg);
+	}
+
+	public void part(String chan) {
+		part(chan,"");
+	}
+
 	public void join(String chan) {
 		send("JOIN", chan);
 	}
