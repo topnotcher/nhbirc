@@ -54,7 +54,7 @@ public class Channel implements Iterable<User> {
 	}
 
 
-	public static Channel get(String name) {
+	public synchronized static Channel get(String name) {
 		Channel ret = channels.get(name);
 
 		if (ret == null)
@@ -158,7 +158,7 @@ public class Channel implements Iterable<User> {
 		}
 	}
 
-	public void destroy() {
+	public synchronized void destroy() {
 		channels.remove(name);
 
 		for (User u : this) 
