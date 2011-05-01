@@ -288,7 +288,16 @@ public class Connection {
 
 
 	/**
-	 * Provides a fluent interface...
+	 * Registers a message handler (by default, to receive all messages).
+	 * Messages can be filtering by chaining filter methods onto 
+	 * the returned subscription.
+	 *
+	 * NOTE: The message subscriptions are backed by an ordered date structure.
+	 *       The MessageHandler guarantess that handlers are called in the order
+	 *       in which they were registered.
+	 *
+	 * @see IrcMessageSubscription
+	 * @return Provides a fluent interface...
 	 */
 	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
 		return (new IrcMessageSubscription(handler)).register(); 
