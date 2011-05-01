@@ -43,39 +43,6 @@ class PaintableMessage implements PaintableText {
 		return x;
 	}
 
-	public String substring( int begin, int end) {
-
-		int idx = 0;
-		int x = 0;
-		String p = "";
-
-		for ( PaintableString string : strings ) {
-				
-			//we need to seek.
-			if (idx + string.getText().length() < begin ) 
-				continue;
-
-			//we know that idx + length() >= begin.
-			int first = 0;
-			int last = string.getText().length();
-
-			if ( idx < begin )
-				first = begin-idx;
-
-			if ( idx + string.getText().length() > end )
-				last = end - idx;
-
-			System.out.println("substr " + first + ", " + last);
-			p += string.getText().substring(first,last);
-
-
-			idx += string.getText().length();				
-			if ( idx >= end ) break;
-		}
-
-		return p;
-	}
-
 	public int  paint(Graphics g, int begin, int end) {
 
 		int idx = 0;
@@ -84,19 +51,22 @@ class PaintableMessage implements PaintableText {
 		int height = g.getFontMetrics().getHeight();
 
 		for ( PaintableString string : strings ) {
-				
+			int len = string.getText().length();
+
 			//we need to seek.
-			if (idx + string.getText().length() < begin ) 
+			if (idx + len < begin ) {
+				idx += len;
 				continue;
+			}
 
 			//we know that idx + length() >= begin.
 			int first = 0;
-			int last = string.getText().length();
+			int last = len;
 
 			if ( idx < begin )
 				first = begin-idx;
 
-			if ( idx + string.getText().length() > end )
+			if ( idx + len > end )
 				last = end - idx;
 
 			width = g.getFontMetrics().stringWidth(string.getText().substring(first,last));
@@ -104,7 +74,10 @@ class PaintableMessage implements PaintableText {
 
 			x += string.paint( g.create(x, 0, width, height) , first, last);
 					
-			if ( idx > end ) break;
+
+			idx += len;
+
+			if ( idx >= end ) break;
 		}
 
 		return x;
