@@ -5,6 +5,7 @@ import java.util.Date;
 
 /**
  * Creates a PaintableText preceeded by a timestamp.
+ * I believe this suffices for the non-trivial inheritance...
  */
 class TimestampedMessage extends PaintableMessage {
 
