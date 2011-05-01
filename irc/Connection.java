@@ -128,7 +128,7 @@ public class Connection {
 			.addType( MessageType.PING )
 			.or()
 			.addCode( MessageCode.RPL_WELCOME )
-
+			.addCommand( "ERROR" )	
 		;
 
 		//@TODO
@@ -224,8 +224,8 @@ public class Connection {
 
 	public void quit(String msg) {
 		send("QUIT", msg);
-		conn.close();
-		conn = null;
+//		conn.close();
+//		conn = null;
 	}
 
 	//handle a raw received message
@@ -402,6 +402,11 @@ public class Connection {
 			} else if ( msg.getType() == MessageType.PING )
 				//preempt!
 				send( "PONG", msg.getMessage(), Priority.CRITICAL );
+
+			else if ( msg.getCommand().equals("ERROR") ) {
+				setState( State.DISCONNECTED );
+				conn = null;
+			}
 		}
 	};
 
@@ -560,25 +565,19 @@ public class Connection {
 		}
 
 		public void close() {
-
 			//stop everything from looping
 			setState(State.DISCONNECTED);
 
+			//not really going to do much about this, eh?
 			try {
-				//should socket be set to block first?
 				conn.close();
 			} catch (Exception e) {
-				//@TODO
-				e.printStackTrace();
+
 			}
 		}
 
 		protected void finalize() {
-			if ( state == State.REGISTERED ) {
-				quit();
-			}
-			else 
-				close();
+			close();
 		}
 	}
 }
