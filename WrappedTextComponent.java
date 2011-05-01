@@ -92,14 +92,23 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 
 		final int ROWS = (int)(HEIGHT/FONTHEIGHT);
 
+		final int INDENT = METRICS.stringWidth("    ");
+
 		int remaining = ROWS;
 		Iterator<String> lines = iterator();
 
 		while ( lines.hasNext() && remaining > 0 ) {
-			String[] rows = getRows( lines.next() ); 
+			String line = lines.next();
 
-			for (int i = rows.length - 1; i >= 0 && remaining > 0; --i,--remaining) 
-				g.drawString( rows[ i ], PAD, remaining*FONTHEIGHT);
+			Integer[] rows = getRows( line ); 
+
+			for (int i = rows.length - 1, offset = 0; i >= 0 && remaining > 0; offset += rows[ i ], --i, --remaining ) {
+			
+				g.drawString( line.substring(offset, offset + rows[ i ]), 
+					PAD + ((i == rows.length-1)  ? 0 : INDENT ), 
+					remaining*FONTHEIGHT
+				);
+			}
 		}
 	}
 
@@ -107,22 +116,24 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 	 * @TODO find a better way to organize this method.
 	 * Especially find a better way to handle the four space indent
 	 */
-	private String[] getRows( String line ) {
+	private Integer[] getRows( String line ) {
 
 		final FontMetrics METRICS = getFontMetrics(getFont());
 		final int WIDTH = getWidth() - 2*PAD;
 
 		//hold the output in this...
-		List<String> rows = new util.LinkedList<String>();
+		List<Integer> rows = new util.LinkedList<Integer>();
 
-		String row = "";
+		//number of chars for current row.
+		int row = 0;
+
 		int remaining = WIDTH;
 
 		//I use "    " as an indent
 		//this is a cheap hack to fix an infinite loop
 		//if the window is too small
 		if ( METRICS.stringWidth("    ") > WIDTH ) 
-			return new String[0];
+			return new Integer[0];
 
 		//first, we attempt to split the thinggy at spaces...
 		StringTokenizer st = new StringTokenizer(line, " ",true); 
@@ -133,7 +144,7 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 			
 			//if the current token will fit in the current row
 			if ( width <= remaining ) {
-				row += tok;
+				row += tok.length();
 				remaining -= width;
 				continue;
 
@@ -150,12 +161,12 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 
 					if  ( width <= remaining ) {
 						remaining -= width;
-						row += chr;
+						row += 1;
 						continue;
 					} else {
 						rows.add(row);
-						row = "    ";
-						remaining = WIDTH - METRICS.stringWidth(row);
+						row = 0;
+						remaining = WIDTH - METRICS.stringWidth("    ");
 					}
 				}
 				continue;
@@ -168,19 +179,19 @@ class WrappedTextComponent extends JComponent implements Iterable<String> {
 		
 				rows.add(row);
 				//in any case...rows.add(row);
-				row = "    ";
-				remaining = WIDTH - METRICS.stringWidth(row);
+				row = 0;
+				remaining = WIDTH - METRICS.stringWidth("    ");
 			}		
 		}
 
 
 		//this is a bit dirty
 		//
-		if (!row.equals("    "))
+		if (row != 0)
 			rows.add(row);
 
 
-		return rows.toArray(new String[rows.size()]);
+		return rows.toArray(new Integer[rows.size()]);
 	}
 
 	public Iterator<String> iterator() {
