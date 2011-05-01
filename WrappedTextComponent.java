@@ -12,13 +12,16 @@ import java.util.NoSuchElementException;
 
 /**
  * A component that displays word-wrapped lines of text.
+ * 
+ * @TODO scrollable
  */
 class WrappedTextComponent extends JComponent implements Iterable<PaintableText> {
 
 	/**
 	 * Number of lines of text to store.
+	 * @TODO configurable
 	 */
-	private static final int BUF_SIZE = 250;
+	private static final int BUF_SIZE = 150;
 
 	//two pixesls between lines, on sides, from top/bottom.
 	private final int PAD = 2;
