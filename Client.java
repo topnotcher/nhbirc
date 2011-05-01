@@ -211,8 +211,9 @@ class Client extends JFrame {
 	
 			} else if ( msg.getType() == MessageType.JOIN && msg.getSource().getNick().equals(irc.nick()) ) {
 				ChatWindow win = new ChannelWindow( msg.getTarget().getChannel(), sync );
-				win.addActionListener(commandListener);				
-				add(win);
+				win.addActionListener(commandListener);
+				add( win );
+				tabs.setSelectedComponent( win.getContentPane() );
 			}
 
 			status.put( msg.getRaw() );	
