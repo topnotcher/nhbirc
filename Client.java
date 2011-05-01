@@ -19,7 +19,7 @@ class Client extends JFrame {
 
 	private List<ChatWindow> windows;
 
-	private client.SyncManager sync;
+	private client.9SyncManager sync;
 
 	public static void main(String[] argv) {
 		new Client();
@@ -51,12 +51,11 @@ class Client extends JFrame {
 		add( debug = new GenericChatWindow("Debug", ChatWindow.Type.STATUS) );
 
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
-		
+
+		//prototyping purposes, just receive ALL messages...
+		irc.addMessageHandler(messageHandler);
 
 		sync = new client.SyncManager(irc);
-
-		//prototyping purposes, just receive ALL Pms
-		irc.addMessageHandler(messageHandler);
 
 		try {
 			//@TODO
