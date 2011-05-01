@@ -120,6 +120,9 @@ class TextFieldPrompt extends InputStream implements KeyListener {
 	}
 
 	private void prompt(String append) {
+
+		if (append == null) return;
+
 		prompt = append;
 
 		int len = (append == null || append.length() == 0) ? 0 : append.length();

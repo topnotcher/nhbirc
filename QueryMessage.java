@@ -5,18 +5,31 @@ import java.awt.Color;
  */
 public class QueryMessage extends PaintableMessage {
 
-	public QueryMessage(irc.Message msg) {
-		String src = msg.getSource().getNick();
+	public static enum Dir { INCOMING, OUTGOING }
 
-		switch ( msg.getType() ) {
+	public QueryMessage(irc.Message msg) {
+		this(msg.getType(), msg.getSource().getNick(), msg.getMessage(), Dir.INCOMING);
+	}
+
+	public QueryMessage(irc.MessageType type, String src, String msg, Dir dir) {
+
+		Color msgColor = null;
+		
+		if (dir == Dir.OUTGOING)
+			msgColor = Color.white;
+
+		switch ( type ) {
 			case ACTION:
-				append("*",Color.red).append(src,Color.orange).append("*",Color.red).append(" " +msg.getMessage() );
+				append("*",Color.red).append(src,Color.orange).append("*",Color.red).append(" " +msg, msgColor);
 				break;
 			case NOTICE:
-				append("-",Color.darkGray).append(src, java.awt.Color.magenta ).append("- ",Color.darkGray).append(msg.getMessage() );
+				String s = (dir == Dir.OUTGOING) ? ">" : "-";
+				String e = (dir == Dir.OUTGOING) ? "<" : "-";
+
+				append(s,Color.darkGray).append(src, Color.magenta ).append(e+" ",Color.darkGray).append(msg, msgColor);
 				break;
 			default:
-				append( "<").append( src, java.awt.Color.yellow).append( "> " + msg.getMessage() );
+				append( "<").append( src, java.awt.Color.yellow).append( "> " + msg, msgColor);
 				break;
 		}
 

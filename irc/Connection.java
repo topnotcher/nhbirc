@@ -128,6 +128,8 @@ public class Connection {
 	
 		addMessageHandler(this.internalHandler)
 			.addType( MessageType.PING )
+			.addType( MessageType.ERROR )
+			.addType( MessageType.NICKCHANGE )
 			.or()
 			.addCode( MessageCode.RPL_WELCOME )
 			.addCommand( "ERROR" )	
@@ -186,12 +188,16 @@ public class Connection {
 		send("PING", hostname, Priority.CRITICAL);
 	}
 
+	public void nick(String nick) {
+		nick(nick, Priority.MEDIUM);
+	}
+
 	/**
 	 * Issue the nick command...
 	 */
-	public void nick(String nick) {
+	public void nick(String nick, Priority p) {
 		//send the nick command...	
-		send("NICK", nick);
+		send("NICK", nick, p);
 
 		this.nick = nick;
 
@@ -242,7 +248,7 @@ public class Connection {
 	}
 
 	public void notice(String target, String msg, Priority p) {
-		notice("PRIVMSG " + target, msg, p);
+		send("PRIVMSG " + target, msg, p);
 	}
 
 
@@ -277,11 +283,19 @@ public class Connection {
 	 * NOTE: THIS CANNOT BE USED FOR REGISTERING.
 	 */
 	public void send(String cmd, String msg, Priority p) {
+		send(cmd + " :" + msg, p);
+	}
+
+	public void send(String msg, Priority p) {
 
 		if ( state != State.REGISTERED )
 			throw new RuntimeException("Cannot execute commands until the connection is registered.");
 
-		sendRaw(cmd + " :" + msg, p);
+		sendRaw(msg, p);	
+	}
+
+	public void send(String msg) {
+		send(msg, Priority.MEDIUM);
 	}
 
 	private void sendRaw(String cmd) {
@@ -458,6 +472,34 @@ public class Connection {
 			else if ( msg.getCommand().equals("ERROR") ) {
 				setState( State.DISCONNECTED );
 				conn = null;
+
+			//@TODO huge mess
+			//	-handle erroneous nickname by choosing a random one.
+			//	-nick collision won't happen during registration.
+			//	-handle collision the same as in use.
+			} else if ( state == State.CONNECTED &&
+					(
+					 /*msg.getCode() == MessageCode.ERR_ERRONEUSNICKNAME ||*/
+						msg.getCode() == MessageCode.ERR_NICKNAMEINUSE ||
+						msg.getCode() == MessageCode.ERR_NICKCOLLISION 
+					)
+			) {
+				//I'm ASSUMING that all of these replies have the same format.
+				//server 433 * nick :reason
+				String bad = msg.getArg(2);
+
+				//if I'm right about all of this, it should keep tacking on a _ until it
+				//doesn't get a bad response...
+				nick(bad+"_", Priority.HIGH);
+
+				//connected, but not registered...
+				//In this case (99% sure), there will only be a 433, and no nick reply confirming the change.
+				//(GOD irc is annoying)
+				nick = bad+ "_";
+
+			//nick reply indicating that I changed my nick...
+			} else if ( msg.getType() == MessageType.NICKCHANGE && msg.getSource().getNick().equals(nick) ) {
+				nick = msg.getTarget().getNick();
 			}
 		}
 	};

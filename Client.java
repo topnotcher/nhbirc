@@ -211,13 +211,42 @@ class Client extends JFrame {
 		} else if ( cmd.equals("QUIT") ) {
 			irc.quit( cmd.getFinal(0) );
 
+		// /msg target msg
 		} else if ( cmd.equals("MSG") ) {
+
 			if ( cmd.numArgs() < 2 ) return;
 			
 			String target = cmd.getArg(0);
 			String message = cmd.getFinal(1);
 			
 			ChatWindow c = getWindow(target);
+
+			if ( c == null ) {
+
+				//we can't just pop a new window for messagine a
+				//channel that we haven't joined...
+				if (target.charAt(0) == '#') return;
+
+				//otherwise, it is a PM....
+				c = new GenericChatWindow( target, ChatWindow.Type.QUERY );
+			
+				add(c);
+			}
+
+			c.put( new QueryMessage( MessageType.QUERY, irc.nick(), message, QueryMessage.Dir.OUTGOING ) );
+			irc.msg(target, message);
+
+		} else if ( cmd.equals("NOTICE") ) {
+			
+			if ( cmd.numArgs() < 2 ) return;
+
+			String target = cmd.getArg(0);
+			String message = cmd.getFinal(1);
+	
+			irc.notice( target, message );
+
+			src.put( new QueryMessage( MessageType.NOTICE, target, message, QueryMessage.Dir.OUTGOING) );
+		
 			///fss why am I doin this.
 		} else if ( cmd.equals("ME" ) ) {
 
@@ -229,9 +258,11 @@ class Client extends JFrame {
 
 			irc.action( src.getName(), cmd.getFinal(0) );
 
-			src.put( (new PaintableMessage())
-				.append("*",Color.red) . append(irc.nick(),Color.orange) . append("*",Color.red) . append(" " +cmd.getFinal(0), Color.white )
+			src.put( 
+				new QueryMessage( MessageType.ACTION, irc.nick(), cmd.getFinal(0), QueryMessage.Dir.OUTGOING)
 			);
+		} else {
+			irc.send(cmd.cmd + " " + cmd.getFinal(0));
 		}
 	}
 
@@ -312,7 +343,14 @@ class Client extends JFrame {
 		/**
 		 * Handle a message...
 		 */
-		public void handle(Message msg) { 
+		public void handle(Message msg) {
+
+			//because a lot of these need a window and a user
+			//and case blocks don't have scope
+			//I really should just handle these wtih refelection or something.
+			client.User user;
+			ChatWindow win;
+
 			switch(msg.getType()) {
 		
 				//all user->user/channel messages.
@@ -325,18 +363,18 @@ class Client extends JFrame {
 
 				case PART:
 		
-					ChatWindow window = getWindow(msg.getTarget().getChannel());
+					win = getWindow(msg.getTarget().getChannel());
 
-					if ( window != null ) {
+					if ( win != null ) {
 			
 						//this is ME leaving...
 						//note that when I type /part, it just SENDS the part command
 						//the window isn't removed until the server responds with a PART reply...
 						if ( msg.getSource().getNick().equals( irc.nick() ) ) 
-							remove(window);
+							remove(win);
 
 						else 
-							window.put(
+							win.put(
 								(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 									.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" left ")
 									.append(msg.getTarget().toString(),Color.cyan).append(" (",Color.darkGray).append( msg.getMessage() )
@@ -347,7 +385,7 @@ class Client extends JFrame {
 					break;
 				
 				case JOIN:
-					ChatWindow win = null;
+					win = null;
 
 					//if I joined a channel, pop a new window...
 					if ( msg.getSource().getNick().equals(irc.nick()) ) {
@@ -374,24 +412,37 @@ class Client extends JFrame {
 					break;
 
 				case TOPIC:
-					ChatWindow c = getWindow( msg.getArg(2) );
-					if ( c == null ) break;
+					win = getWindow( msg.getArg(2) );
+					if ( win == null ) break;
 
-					c.put( (new PaintableMessage()).indent(4)
+					win.put( (new PaintableMessage()).indent(4)
 						.append("--- ", Color.lightGray).append( msg.getArg(2)+": ", Color.white ).append( msg.getMessage(), Color.cyan )
 					);
 
 					break;
 
+				/**
+				 * @TODO...
+				 * NICKCHANGE and QUIT need to check QUERY windows as well
+				 * QUERY windows will need renaming on QUIT...
+				 */
 				case NICKCHANGE:
+					user = sync.getUser( msg.getSource().getNick() );
+					
+					for ( client.Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
+						win.put(
+							(new PaintableMessage()).append("--- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
+								.append(" is now known as ").append(msg.getTarget().getNick(), Color.cyan)
+							);
+					}
+
 					break;
 
 				case QUIT:
-					client.User user = sync.getUser( msg.getSource().getNick() );
-					ChatWindow userWindow;
+					user = sync.getUser( msg.getSource().getNick() );
 
-					for ( client.Channel channel : user ) if ( (userWindow = getWindow( channel.getName() )) != null) {
-						userWindow.put(
+					for ( client.Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
+						win.put(
 							(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 								.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" QUIT ")
 								.append("(",Color.darkGray).append( msg.getMessage() )
@@ -401,6 +452,20 @@ class Client extends JFrame {
 
 					break;
 
+				case ERROR:
+					status.put( (new PaintableMessage()) 
+						.append("ERROR: ",Color.red).append("[",Color.darkGray).append(msg.getCommand()).append("] ",Color.darkGray)
+						.append( msg.getMessage(), Color.orange).indent(7)
+					);
+
+					debug.put( (new PaintableMessage()).append(msg.getRaw(), Color.red));
+					break;
+
+				case LOGIN:
+				case INFO:
+					status.put( new QueryMessage(msg) );
+
+					//no break here for now...
 				default:
 					debug.put( msg.getRaw() );	
 					break;
