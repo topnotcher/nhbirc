@@ -109,12 +109,6 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 			for (int i = rows.length - 1, offset = line.length(); i >= 0 && remaining > 0; offset -= rows[ i ], --i, --remaining ) {
 
-				/*g.drawRect( 
-					PAD + ((i == 0)  ? 0 : INDENT ), 
-					(remaining-1)*FONTHEIGHT+PAD,
-					WIDTH,
-					METRICS.getHeight()
-				);*/
 				text.paint( g.create(
 						PAD + ((i == 0)  ? 0 : INDENT ), 
 						(remaining)*FONTHEIGHT-METRICS.getHeight(), 

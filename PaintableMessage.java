@@ -43,6 +43,39 @@ class PaintableMessage implements PaintableText {
 		return x;
 	}
 
+	public String substring( int begin, int end) {
+
+		int idx = 0;
+		int x = 0;
+		String p = "";
+
+		for ( PaintableString string : strings ) {
+				
+			//we need to seek.
+			if (idx + string.getText().length() < begin ) 
+				continue;
+
+			//we know that idx + length() >= begin.
+			int first = 0;
+			int last = string.getText().length();
+
+			if ( idx < begin )
+				first = begin-idx;
+
+			if ( idx + string.getText().length() > end )
+				last = end - idx;
+
+			System.out.println("substr " + first + ", " + last);
+			p += string.getText().substring(first,last);
+
+
+			idx += string.getText().length();				
+			if ( idx >= end ) break;
+		}
+
+		return p;
+	}
+
 	public int  paint(Graphics g, int begin, int end) {
 
 		int idx = 0;
