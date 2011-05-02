@@ -15,12 +15,12 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 	/**
 	 * Head node of the list.
 	 */
-	private Node head = null;
+	protected Node head = null;
 
 	/**
 	 * The size of the list
 	 */
-	private int size = 0;
+	protected int size = 0;
 
 	/**
 	 * Default constructor - initialize an empty list.
@@ -43,16 +43,15 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 	 * One node of the linked list.  Little more than a struct.
 	 * mini/private/inner class with only private members.
 	 */
-	private class Node {
-		private Node prev = null;
-		private Node next = null;
+	protected class Node {
+		protected Node prev = null;
+		protected Node next = null;
 
-		private T item = null;
+		protected T item = null;
 
-		private Node(T item) {
+		protected Node(T item) {
 			this.item = item;
 		}
-
 	}
 
 	/**
@@ -102,10 +101,20 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 	 * 
 	 * Per AbstractSequentialList, this is the functional part of the entire list.
 	 */
-	private ListIterator<T> listIterator(final int startIdx, final Node startNode) { return new ListIterator<T>() {
+	private ListIterator<T> listIterator(final int startIdx, final Node startNode) { 
+		return new LinkedListIterator(startIdx, startNode);
 	
-		private Node current = startNode;
-		private int idx = startIdx;
+	} //end Iterator
+
+	protected class LinkedListIterator implements ListIterator<T> {
+
+		private Node current ;
+		private int idx ;
+
+		protected LinkedListIterator(int  startIdx, Node startNode) {
+			current = startNode;
+			idx = startIdx;
+		}
 	
 		/**
 		 * Adds an item to the list after the current item.
@@ -132,7 +141,6 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 
 				head = node;
 
-			
 			} else {
 				//current->[ new node ]->current.next
 				node.next = current.next;
@@ -147,7 +155,6 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 			++idx;
 			current = node;
 			++size;
-
 		}
 
 		/**
@@ -301,5 +308,5 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 			current.item = item;
 		}
 
-	};} //end Iterator
+	} //end iterator.
 }
