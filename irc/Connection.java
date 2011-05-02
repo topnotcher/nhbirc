@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  */
 public class Connection {
 
-	public enum State {
+	public static enum State {
 		DISCONNECTED(0),
 		CONNECTED(1),
 		REGISTERED(2);
@@ -108,6 +108,18 @@ public class Connection {
 		synchronized(this) {
 			notifyAll();
 		}
+	}
+
+	public State getState() {
+		return state;
+	}
+
+	public String getServerName() {
+		return hostname;
+	}
+
+	public Connection getConnection() {
+		return this;
 	}
 
 	//attempt to connect
@@ -260,7 +272,7 @@ public class Connection {
 	}
 
 	public void quit(String msg) {
-		send("QUIT", msg);
+		send("QUIT", msg, Priority.LOW);
 //		conn.close();
 //		conn = null;
 	}
@@ -269,7 +281,7 @@ public class Connection {
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 	
-		recvQ.offer( MessageParser.parse( raw ) );
+		recvQ.offer( MessageParser.parse( this, raw ) );
 
 	}
 
@@ -402,6 +414,12 @@ public class Connection {
 			return this;
 		}
 
+		public void unregister() {
+			synchronized(handlers) {
+				handlers.remove(this);
+			}
+		}
+
 		public IrcMessageSubscription or() {
 			return (new IrcMessageSubscription(this.handler)).register();
 		}
@@ -453,14 +471,19 @@ public class Connection {
 			}
 
 			//if we haven't returne by this point, the message must be a match...
-			handler.handle(msg);		
+			//@TODO consider creating one event each time a handler matches? 
+			//this is a bit redundant.
+			handler.handle(new MessageEvent(getConnection(), this, msg));
 		}
 	}
 	
 	//handler for some internal stuff.
 	private MessageHandler internalHandler = new MessageHandler() {
 
-		public void handle(Message msg) {
+
+		public void handle(MessageEvent e) {
+
+			Message msg = e.getMessage();
 
 			if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
 				setState(State.REGISTERED);

@@ -2,7 +2,7 @@ package irc;
 
 public class MessageTarget {
 
-	public enum Scope { CHANNEL, NICK, USER, SERVER, NONE; }
+	public static enum Scope { CHANNEL, NICK, USER, SERVER, NONE; }
 
 	private Scope scope;
 
@@ -32,8 +32,12 @@ public class MessageTarget {
 	}
 
 	public boolean scope(Scope s) {
-		return this.scope == s;
+
+		//true if they are the same scope, or
+		//if nick was requested and the scope is USER (because both have a nick...)
+		return this.scope == s || ( s == Scope.NICK && this.scope == Scope.USER);
 	}
+
 
 	//@TODO exception types
 

@@ -2,7 +2,7 @@ package irc;
 
 public enum MessageType {
 	UNKNOWN,
-	CHANNEL,
+//	CHANNEL,
 	QUERY,
 	CTCP,
 	NOTICE,
@@ -19,6 +19,7 @@ public enum MessageType {
 	NAME,
 	MOTD,
 	MODECHANGE,
+	KICK,
 	PART,
 	ERROR,
 	BANLIST,
@@ -31,5 +32,6 @@ public enum MessageType {
 	CTCP_REQUEST,
 	CTCP_REPLY,
 	ISON,
+	DISCONNECT,
 	PING;
 }

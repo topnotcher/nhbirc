@@ -219,7 +219,8 @@ public enum MessageCode {
 	MessageCode( String code ) {
 		this.code = code;
 
-		if ( Integer.parseInt(code) >= 400 )
+		int c = Integer.parseInt(code);
+		if ( c >= 400 && c < 600 )
 			this.type = MessageType.ERROR;
 		else
 			this.type = MessageType.UNKNOWN;

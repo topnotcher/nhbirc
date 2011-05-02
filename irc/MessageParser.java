@@ -1,20 +1,27 @@
 package irc;
 
-import java.util.Vector;
+import java.util.List;
+
+/**
+ * BASIC format of an IRC Message:
+ * [:prefix ]COMMAND[ ARG1 [ARG2 ... ARGN[ :trailing]]]
+ * Trailing is really just the final argument, but it needs be 
+ * handled specially. The trailing part is used to allow for spaces in
+ * the last argument.
+ */
 
 class MessageParser {
-	
-	public static Message parse( String msg ) {
+
+	public static Message parse(Connection irc, String msg) {
 
 		if (msg.length() == 0)
 			throw new RuntimeException("Empty message");
-
 
 		Message message = new Message();
 
 		message.setRaw(msg);
 
-		Vector<String> args = new Vector<String>(2);
+		List<String> args = new util.LinkedList<String>();
 
 		String trailing = null;
 		String prefix = null;
@@ -26,9 +33,16 @@ class MessageParser {
 			pos = msg.indexOf(' ',1);
 			prefix = msg.substring(1, pos);
 			msg = msg.substring(pos+1);
+
+		//if there is no prefix (full origin
+		//then the message came from the directly
+		//connected server
+		} else if ( irc.getState() == Connection.State.REGISTERED ) {
+			prefix = irc.getServerName();
 		}
 
-		//check for a " :" delimiter, which separates the message "header" from the body.
+		//check for a " :" delimiter, which separates the "trailing" portion
+		//this is essentially a trick used to allow spaces in the final argument...
 		if ( (pos = msg.indexOf(" :")) != -1 ) {
 			trailing = msg.substring(pos+2);
 			
@@ -40,41 +54,41 @@ class MessageParser {
 	
 		for (String arg : msg.split(" "))
 			args.add(arg);
+	
+		//if there's a trailing, we call that the "message"
+		if (trailing != null) {
+			args.add(trailing);
+			
+			message.setMessage( trailing );
+		}
+	
+		if ( args.size() >= 2 ) {
+			message.setTarget( new MessageTarget(args.get(1)) );	
+
+			//this is probably weird, but it has its uses...
+			if ( prefix == null )
+				prefix = args.get(1);
+
+			//if the message is TO a nick... and that nick is the nick for the current connection
+			if ( message.getTarget().scope( MessageTarget.Scope.NICK ) &&  message.getTarget().getNick().equals(irc.nick()))
+				message.setToMe(true);
+		}
+		else 
+			message.setTarget( new MessageTarget() );
 
 		if ( prefix != null ) 
 			message.setSource( new MessageTarget( prefix ) );
 		else 
 			message.setSource( new MessageTarget() );
 
-//353 fubar = #divinelunacy :
-		if ( args.size() >= 2 ) {
-			String t = args.get(1);
-	
-/*			if ( args.size() >= 4 ) {
-				String tmp = args.get(2);
 
-				if (tmp.equals("=") || tmp.equals("*"))
-					t = args.get(3);
-			}
-*/
+		//if the message is FROM a nick... and that nick is the nick for the current connection
+		if ( message.getSource().scope( MessageTarget.Scope.NICK ) &&  message.getSource().getNick().equals(irc.nick()))
+			message.setFromMe(true);
 
-			message.setTarget( new MessageTarget( t ) );
-		}
-	
-		else 
-			message.setTarget( new MessageTarget() );
+		String command = args.get(0).toUpperCase();
 
-		if (trailing != null) {
-			args.add(trailing);
-			
-			message.setMessage( trailing );
-		}
-		else
-			message.setMessage( msg );
-
-		String command;
-
-		message.setCommand( command = args.get(0) );
+		message.setCommand( command );
 
 		message.setArgs( args.toArray(new String[args.size()]) );
 
@@ -107,41 +121,16 @@ class MessageParser {
 						type = MessageType.CTCP;
 						priority = Priority.LOW;
 					}
-
-					
+		
 				} else if ( command.equals("NOTICE") ) {
 					type = MessageType.NOTICE;
 
-				} else if (args.size() >= 2 && args.get(1).charAt(0) == '#') 
-					type = MessageType.CHANNEL;
-
-				else 
-				type = MessageType.QUERY;
+				} else 
+					type = MessageType.QUERY;
 			}
 
 			else if ( command.equals("JOIN") ) {
 				type = MessageType.JOIN;
-				
-				//make the channel the target for JOIN
-				//VIA rfc2812, servers shouldn't use a CSV list
-				//when sending JOINs to clients (e.g. this is valid)
-				//
-				//
-				/** 
-				 * This is really damn weird, but
-				 * some IRCDs send a join like 
-				 * nick!user@host JOIN :#channel
-				 *
-				 * while some use:
-				 * nick!user@host JOIN #channel
-				 */
-
-				//if the "target" is already a channel, do nothing
-				//otherwise, extract the "body" and make that the target...
-
-				if ( !message.getTarget().scope(MessageTarget.Scope.CHANNEL) )
-					message.setTarget( new MessageTarget( message.getMessage() ) );
-
 				priority = Priority.HIGH;
 			}
 
@@ -149,29 +138,14 @@ class MessageParser {
 				type = MessageType.TOPICCHANGE;
 
 			else if ( command.equals("NICK") ) {
-				type = MessageType.NICKCHANGE;
-	
-				//similar to JOIN
-				message.setTarget( new MessageTarget( message.getMessage() ) );
+				type = MessageType.NICKCHANGE;	
 			}
 
 			else if ( command.equals("KICK") )
-				type = MessageType.PART;
+				type = MessageType.KICK;
 
 			else if ( command.equals("PART") ) {
 				type = MessageType.PART;
-
-				//see the note under JOIN. Some stupid IRCDs do this differently
-				//on gamesurge, you get two different messages depending on whether or not you had a part message...
-				//_mario_!~_mario_@131.128.211.16 PART #mariotestchannel1 :message here
-				//_mario_!~_mario_@131.128.211.16 PART :#mariotestchannel1
-				//how is that for annoying as hell?
-
-				if ( !message.getTarget().scope(MessageTarget.Scope.CHANNEL) ) {
-					message.setTarget( new MessageTarget( message.getMessage() ) );
-					message.setMessage("");
-				}
-
 			}
 
 			else if ( command.equals("MODE") )
@@ -180,8 +154,10 @@ class MessageParser {
 			else if ( command.equals("QUIT") )
 				type = MessageType.QUIT;
 
+			//per RFC2812, error is basically only used for
+			//a disconnect when being send to clients.
 			else if ( command.equals("ERROR") )
-				type = MessageType.ERROR;
+				type = MessageType.DISCONNECT;
 
 			else if ( command.equals("PING") ) {
 				type = MessageType.PING;

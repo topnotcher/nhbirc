@@ -21,6 +21,10 @@ public class Message implements Comparable<Message> {
 
 	private long time;
 
+	private boolean fromMe = false;
+
+	private boolean toMe = false;
+
 	Message() {
 		time = System.nanoTime();
 	}
@@ -64,12 +68,26 @@ public class Message implements Comparable<Message> {
 		this.raw = raw;
 	}
 
+	void setFromMe(boolean bool) {
+		fromMe = bool;
+	}
+
+	void setToMe(boolean bool) {
+		toMe = bool;
+	}
+
+
+
 	public int numArgs() {
 		return args.length;
 	}
 
 	public String getArg(int n) {
 		return args[n];
+	}
+
+	public String get(int n) {
+		return getArg(n);
 	}
 
 	public String[] getArgs() {
@@ -108,6 +126,18 @@ public class Message implements Comparable<Message> {
 		return code;
 	}
 
+	public boolean isFromMe() {
+		return fromMe;
+	}
+
+	/**
+	 * The from me one is useful
+	 * this probably isn't.
+	 */
+	public boolean isToMe() {
+		return toMe;
+	}
+
 	public int compareTo(Message m) {
 		int val = priority.getValue() - m.priority.getValue();
 
@@ -116,9 +146,5 @@ public class Message implements Comparable<Message> {
 		return (int)(time - m.time);
 	}
 
-/*
-	public String toString() {
-		return source + " " + command + " " + target + " :"	+msg;
-	}
-*/
+
 }

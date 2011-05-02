@@ -343,7 +343,9 @@ class Client extends JFrame {
 		/**
 		 * Handle a message...
 		 */
-		public void handle(Message msg) {
+		public void handle(MessageEvent e) {
+
+			Message msg = e.getMessage();
 
 			//because a lot of these need a window and a user
 			//and case blocks don't have scope
@@ -354,7 +356,7 @@ class Client extends JFrame {
 			switch(msg.getType()) {
 		
 				//all user->user/channel messages.
-				case CHANNEL:
+//				case CHANNEL:
 				case ACTION:
 				case QUERY: 
 				case NOTICE:
@@ -370,7 +372,7 @@ class Client extends JFrame {
 						//this is ME leaving...
 						//note that when I type /part, it just SENDS the part command
 						//the window isn't removed until the server responds with a PART reply...
-						if ( msg.getSource().getNick().equals( irc.nick() ) ) 
+						if ( isFromMe() ) 
 							remove(win);
 
 						else 
@@ -388,7 +390,7 @@ class Client extends JFrame {
 					win = null;
 
 					//if I joined a channel, pop a new window...
-					if ( msg.getSource().getNick().equals(irc.nick()) ) {
+					if ( msg.isFromMe() ) {
 						win = new ChannelWindow( msg.getTarget().getChannel(), sync );
 						add( win );
 				
@@ -541,8 +543,9 @@ class Client extends JFrame {
 
 			//otherwise, it is in some form of chat window, so send a message...
 			} else {
-				src.put(new QueryMessage( MessageType.QUERY, irc.nick(), cmd, QueryMessage.OUTGOING));
+				src.put(new QueryMessage( MessageType.QUERY, irc.nick(), cmd, QueryMessage.Dir.OUTGOING));
 				irc.msg( src.getName() , cmd );	
+			}	
 		}
 	};
 }
