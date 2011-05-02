@@ -2,7 +2,8 @@ import javax.swing.JPanel;
 import java.util.List;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
-
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusAdapter;
 
 abstract class ChatWindowAbstract extends JPanel implements ActionListener, ChatWindow {
 	
@@ -23,6 +24,12 @@ abstract class ChatWindowAbstract extends JPanel implements ActionListener, Chat
 		setType(type);
 		console = new GUIConsole(name);
 		console.addActionListener(this);
+
+		this.addFocusListener( new FocusAdapter() {
+			public void focusGained(FocusEvent e) {
+				console.requestFocusInWindow();
+			}
+		});
 	}
 
 	/**

@@ -26,6 +26,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyAdapter;
 
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusAdapter;
 
 public class GUIConsole extends BufferedPanel {
 
@@ -91,6 +93,12 @@ public class GUIConsole extends BufferedPanel {
 			}
 		});
 
+		this.addFocusListener( new FocusAdapter() {
+			public void focusGained(FocusEvent e) {
+				field.requestFocusInWindow();
+
+			}
+		});
 
 		//Green on black is the ONLY color for a terminal.
 		setBackground(Color.black);

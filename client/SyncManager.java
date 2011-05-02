@@ -22,9 +22,7 @@ public class SyncManager implements MessageHandler {
 			.addType( MessageType.TOPIC )
 			.addType( MessageType.CHANNELMODE )
 			.addType( MessageType.TOPICCHANGE )
-	//		.addType( MessageType.WHO )
 		;
-//		m!topnotcher@13.37 MODE #foo +sa fubar
 
 	}
 	public void handle( MessageEvent e ) {
@@ -81,8 +79,7 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			case CHANNELMODE:
-				System.out.println("CHANNEL MODE");
-				//@TODO names helper?
+				//@TODO 
 				//This is dirty and inefficient, but dealing with mode changes
 				//is incredibly difficult as different servers
 				//support different modes. This is the most reliable way
