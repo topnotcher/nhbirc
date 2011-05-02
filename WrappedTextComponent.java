@@ -110,7 +110,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 			PaintableText text = lines.next();
 			String line = text.getText();
-			indent = text.getIndent();
+			indent = text.etIndent();
 
 			Integer[] rows = getRows( line, indent ); 
 					
@@ -135,7 +135,9 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 	private Integer[] getRows( String line, int indent ) {
 
 		final FontMetrics METRICS = getFontMetrics(getFont());
+
 		final int WIDTH = getWidth() - 2*PAD;
+		final int indentsize = indent*METRICS.stringWIDTH(" ")*indent;
 
 		//hold the output in this...
 		List<Integer> rows = new util.LinkedList<Integer>();
@@ -145,10 +147,10 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 		int remaining = WIDTH;
 
-		//I use "    " as an indent
+		//I use " " as an indent
 		//this is a cheap hack to fix an infinite loop
 		//if the window is too small
-		if ( METRICS.stringWidth(" ")*indent > WIDTH ) 
+		if ( METRICS.stringWidth(" ")*indent > WIDTH )
 			return new Integer[0];
 
 		//first, we attempt to split the thinggy at spaces...
@@ -165,7 +167,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 			//in this case, the current token wn't fit in a row PERIOD,
 			//so it definitely *has* to be split up.
-			} else if ( width > WIDTH) {
+			} else if ( width > WIDTH-indentsize ) {
 	
 				//now we're (lol) going to go through the same process
 				//as getRows(), but where each token is a character!
@@ -196,7 +198,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 			}
 		}
 
-		if (row != 0) 
+		if (row != 0)
 			rows.add(row);
 
 		return rows.toArray(new Integer[rows.size()]);
