@@ -13,23 +13,22 @@ import javax.swing.SpringLayout;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
-import java.io.PrintStream;
-import java.io.InputStream;
 
 /**
  * Whent he textarea is clicked, we want to set focus to the prompt.
  */
-import java.awt.event.MouseListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
-public class GUIConsole extends BufferedPanel implements MouseListener {
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyAdapter;
 
-	/**
-	 * InputStrem associated with this console.
-	 */
-	private TextFieldPrompt in;
+
+public class GUIConsole extends BufferedPanel {
+
 
 	/**
 	 * The textarea for the output stream of the console.
@@ -42,7 +41,13 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 	 */
 	protected JTextField field;
 
+
+	//has a single actionlistener for now.
 	private ActionListener listener;
+
+
+	//command lien history
+	private History history = new History(10);
 
 	public GUIConsole() {
 		this("");
@@ -55,27 +60,46 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 		area = new WrappedTextComponent();
 
 		//listen to the mouse
-		area.addMouseListener(this);
+		area.addMouseListener( new MouseAdapter() {
+			public void mouseClicked(MouseEvent e) {
+				field.requestFocusInWindow();
+			}	
+		});
 
 
 		//an InputStream that gathers input from a textfield.
-		in = new TextFieldPrompt();
+		field = new JTextField();
 
-		//the textfield
-		field = in.field;
+		field.addActionListener( new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				history.add( e.getActionCommand());
+				field.setText("");
+			}
+		});
 
+		field.addKeyListener( new KeyAdapter() {
+			public void keyPressed(KeyEvent e) {
+				switch (e.getKeyCode()) {
+					case KeyEvent.VK_UP:
+						field.setText(history.up());
+						break;
+
+					case KeyEvent.VK_DOWN:
+						field.setText(history.down());
+						break;
+				}
+			}
+		});
 
 
 		//Green on black is the ONLY color for a terminal.
 		setBackground(Color.black);
 		setForeground(Color.green);
 
-		in.field.setBackground(Color.black);
-		in.field.setForeground(Color.green);
+		field.setBackground(Color.black);
+		field.setForeground(Color.green);
 
 		setFont(new Font("Monospaced", Font.PLAIN, 14));
-
-
 
 		this.add( area , BorderLayout.CENTER);
 
@@ -86,36 +110,30 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 		javax.swing.JLabel label = new javax.swing.JLabel( name );
 
 		input.add(label);
-		input.add(in.field);
+		input.add(field);
 
 		layout.putConstraint(SpringLayout.WEST, label, 5, SpringLayout.WEST, input);
 		layout.putConstraint(SpringLayout.NORTH, label, 5, SpringLayout.NORTH, input);
 
-		layout.putConstraint(SpringLayout.WEST, in.field, 5, SpringLayout.EAST, label);
-		layout.putConstraint(SpringLayout.NORTH, in.field, 5, SpringLayout.NORTH, input);
+		layout.putConstraint(SpringLayout.WEST, field, 5, SpringLayout.EAST, label);
+		layout.putConstraint(SpringLayout.NORTH, field, 5, SpringLayout.NORTH, input);
 
-		layout.putConstraint(SpringLayout.EAST, input, 5, SpringLayout.EAST, in.field);
-		layout.putConstraint(SpringLayout.SOUTH, input, 5, SpringLayout.SOUTH, in.field);
+		layout.putConstraint(SpringLayout.EAST, input, 5, SpringLayout.EAST, field);
+		layout.putConstraint(SpringLayout.SOUTH, input, 5, SpringLayout.SOUTH, field);
 
 
-		this.add(input, BorderLayout.SOUTH);			
+		this.add(input, BorderLayout.SOUTH);
+
+		field.requestFocusInWindow();
 	}
 	
 	public void addActionListener(ActionListener l) {
-		in.addActionListener(l);
+		field.addActionListener(l);
 	}
 
-	public void setOut(PrintStream out) {
-		//not implemented
+	public JTextField getField() {
+		return field;
 	}
-
-//	public InputStream in() {
-//		return in;
-//	}
-
-//	public PrintStream out() {
-//		return out;
-//	}
 
 	public void append( String text ) {
 		area.append(text);
@@ -129,21 +147,4 @@ public class GUIConsole extends BufferedPanel implements MouseListener {
 		area.setFont(f);
 		field.setFont(f);
 	}
-	public void prompt(String prompt) {
-		in.setPrompt(prompt);
-		field.requestFocusInWindow();
-	}
-
-	public void mouseClicked(MouseEvent e) {
-		//focus the textfield when the console is clicked.
-		field.requestFocusInWindow();
-	}
-
-	/**
-	 * Empty methods for the interface
-	 */
-	public void mouseEntered(MouseEvent e) {}
-	public void mouseReleased(MouseEvent e) {}
-	public void mouseExited(MouseEvent e) {}
-	public void mousePressed(MouseEvent e) {}
 }

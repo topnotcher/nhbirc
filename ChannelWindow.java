@@ -8,8 +8,11 @@ import javax.swing.event.ListDataListener;
 import javax.swing.JTextField;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.event.KeyListener;
+import java.awt.event.KeyEvent;
 
 import client.*;
+
 
 public class ChannelWindow extends ChatWindowAbstract {
 	
@@ -30,8 +33,6 @@ public class ChannelWindow extends ChatWindowAbstract {
 		list = new ChannelListModel();	
 
 		channel.addChannelListener( channelListener );
-
-
 
 		setLayout(new BorderLayout());
 
