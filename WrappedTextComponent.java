@@ -13,7 +13,7 @@ import java.util.NoSuchElementException;
 /**
  * A component that displays word-wrapped lines of text.
  * 
- * @TODO scrollable
+ * @TODO Convert this to a Document,View, JTextComponent, so it actually "acts like" text.
  */
 class WrappedTextComponent extends JComponent implements Iterable<PaintableText> {
 
