@@ -65,10 +65,11 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 		//@TODO topic
 		add(topic = new JTextField(channel.getTopic()), BorderLayout.NORTH);
+
+		//FINALLY
 	}
 
 	protected void finalize() {
-		System.out.println("Finalize channel window");
 		channel.removeChannelListener( channelListener );
 	}
 
@@ -85,7 +86,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 		}
 	};
 
-	public ChannelListener channelListener = new ChannelAdapter() {
+	private ChannelListener channelListener = new ChannelAdapter() {
 		public void topicChanged(Channel c) {
 			topic.setText(c.getTopic());
 		}
