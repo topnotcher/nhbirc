@@ -39,7 +39,7 @@ class WrappedTextComponent extends JComponent {
 	/**
 	 * Append a line of text to the component
 	 */
-	public void append( PaintableText text ) {
+	public synchronized void append( PaintableText text ) {
 		stack.add(text);
 		repaint();
 	}
