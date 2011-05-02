@@ -541,9 +541,8 @@ class Client extends JFrame {
 
 			//otherwise, it is in some form of chat window, so send a message...
 			} else {
-				irc.msg( src.getName() , cmd );
-				src.put( (new PaintableMessage()).append("<").append(irc.nick(),Color.orange).append("> ").append(cmd, Color.white));
-			}
+				src.put(new QueryMessage( MessageType.QUERY, irc.nick(), cmd, QueryMessage.OUTGOING));
+				irc.msg( src.getName() , cmd );	
 		}
 	};
 }
