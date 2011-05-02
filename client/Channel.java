@@ -243,9 +243,6 @@ public class Channel implements Iterable<User> {
 		Class[] paramtypes = {this.getClass()};
 		Object[] params = {this};
 
-		//@TODO
-		System.out.println("FIRE EVENT: "+ event);
-
 		for (ChannelListener l : subs) {
 			try {
 				//FIND the method (or exception if not defined)
@@ -254,14 +251,14 @@ public class Channel implements Iterable<User> {
 				//invoke the method
 				command.invoke(l,params);
 			} catch (NoSuchMethodException e) {
+
 				//won't happen.
-				e.printStackTrace();
 			} catch (IllegalAccessException e) {
-				e.printStackTrace();
+
 			} catch (InvocationTargetException e) {
-				e.printStackTrace();
+
 			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
+
 			}
 		}
 	}
