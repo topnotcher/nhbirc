@@ -18,6 +18,9 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
+ * @TODO need to make the exception handling better
+ * This might mean a way to register exception handlers or something, 
+ * as currently most of the exceptions will occur in different threads.
  */
 public class Connection {
 
@@ -336,7 +339,6 @@ public class Connection {
 		//offer returns bool.
 		if (!sendQ.offer( new OutgoingMessage(cmd,p) ))
 			throw new RuntimeException("Failed to queue message: " + cmd);
-
 	}
 
 
@@ -502,9 +504,8 @@ public class Connection {
 				setState(State.REGISTERED);
 
 				hostname = msg.getSource().getHost();
+
 			} else if ( msg.getType() == MessageType.PING ) {
-				//preempt! - and this is raw for a very good reason:
-				//sometimes this needs to be sent during registration
 				send( Priority.CRITICAL, "PONG", msg.getMessage() );
 
 			} else if ( msg.getCommand().equals("ERROR") ) {
@@ -556,25 +557,28 @@ public class Connection {
 				try {
 					msg = recvQ.poll(PING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
-					System.out.println("INTERRUPT");
+					e.printStackTrace();
 				}
 
 				//nothing to do
 				if (msg == null) continue;
 
-			
 				Iterator<IrcMessageSubscription> it = handlers.iterator();
 					
 				while (it.hasNext()) try {
 					it.next().handle( msg );
 				} catch (Exception e) {
-					//TODO need a way to handle these...
+					//@TODO
 					e.printStackTrace();
 				}
 
-				//We do this after the loop...
-				//don't bother checkuing until a message been sent...
-				if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) ping();
+				//ping timeout
+				if ( System.currentTimeMillis() - last_rx > MAX_IDLE ) 
+					conn.close();
+				
+				//keep alive.
+				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
+					ping();
 			}
 		}
 	}
@@ -677,6 +681,7 @@ public class Connection {
 					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
 		
 				} catch (Exception e) {
+
 					//@TODO
 					e.printStackTrace();
 				}
@@ -705,11 +710,10 @@ public class Connection {
 			//stop everything from looping
 			setState(State.DISCONNECTED);
 
-			//not really going to do much about this, eh?
 			try {
 				conn.close();
 			} catch (Exception e) {
-
+				//not really anyhing we CAN do...
 			}
 		}
 

@@ -2,12 +2,22 @@ import java.awt.Color;
 
 /**
  * Abstract painting a "query type" message to the screen..
+ * @TODO configurable colors.
  */
 public class QueryMessage extends PaintableMessage {
 
+	/**
+	 * Represents the direction of the message being painted.
+	 */
 	public static enum Dir { INCOMING, OUTGOING }
 
-	public QueryMessage(irc.Message msg) { 
+	/**
+	 * Create a message for painting.
+	 * @param msg an in [incoming] irc message
+	 */
+	public QueryMessage(irc.MessageEvent e) { 
+
+		irc.Message msg = e.getMessage();
 	
 		//some networks are offensive, and they'll send notices (especially AUTH
 		//with no prefix. IMO, that's just god damn annoying.  
@@ -22,33 +32,52 @@ public class QueryMessage extends PaintableMessage {
 		if ( msg.getSource().scope(irc.MessageTarget.Scope.NONE) || msg.getSource().scope(irc.MessageTarget.Scope.SERVER) )
 			type = irc.MessageType.NOTICE;
 
-		init(type, src, msg.getMessage(), Dir.INCOMING);
+		//the message contains the nickname of the current connection
+		if ( msg.getMessage().toLowerCase().indexOf( e.getSource().nick().toLowerCase() ) != -1)
+			init(type,src,msg.getMessage(), Dir.INCOMING,  Color.blue);
+		else
+			init(type, src, msg.getMessage(), Dir.INCOMING,null);
 	}
 
+	/**
+	 * Create a string to paint. This makes outgoing messages look like incoming ones.
+	 * 
+	 * @param type the type of message being painted.
+	 * @param src the source (nickname) of the message
+	 * @param msg the message being painted
+	 * @param dir the direction of the message: Dir.INCOMING/OUTGOING
+	 */
 	public QueryMessage(irc.MessageType type, String src, String msg, Dir dir) {
-		init(type, src, msg, dir);
+		init(type, src, msg, dir,null);
 	}
 
-	public void init(irc.MessageType type, String src, String msg, Dir dir) {
+	private void init(irc.MessageType type, String src, String msg, Dir dir, Color msgColor) {
 
-
-		Color msgColor = null;
-		
-		if (dir == Dir.OUTGOING)
+		if (msgColor == null && dir == Dir.OUTGOING)
 			msgColor = Color.white;
 
+
 		switch ( type ) {
+
+			//ACTION CTCPs
 			case ACTION:
 				append("*",Color.red).append(src,Color.orange).append("*",Color.red).append(" " +msg, msgColor);
 				break;
+
+			//Notice
 			case NOTICE:
+				//outgoing prints like >destnick<
 				String s = (dir == Dir.OUTGOING) ? ">" : "-";
+
+				//incoming prints like -srcnick-
 				String e = (dir == Dir.OUTGOING) ? "<" : "-";
 
 				append(s,Color.darkGray).append(src, Color.magenta ).append(e+" ",Color.darkGray).append(msg, msgColor);
 				break;
+
+			//PMs and Channel Messages
 			default:
-				append( "<").append( src, java.awt.Color.yellow).append( "> " + msg, msgColor);
+				append( "<").append( src, Color.yellow).append("> ").append(msg, msgColor);
 				break;
 		}
 

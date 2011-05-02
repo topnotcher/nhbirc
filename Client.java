@@ -9,6 +9,9 @@ import irc.*;
 
 import java.util.List;
 
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowAdapter;
+
 class Client extends JFrame {
 
 	/**
@@ -47,6 +50,9 @@ class Client extends JFrame {
 	 */
 	private final String CHAN = "#foo";
 
+
+	private volatile boolean reconnect = true;
+
 	/**
 	 * Basic standalone starter
 	 */
@@ -61,7 +67,7 @@ class Client extends JFrame {
 		
 		setSize(1000,800);
 
-		setTitle("Irc client");
+		setTitle("NHBiRC");
 
 		windows = new util.LinkedList<ChatWindow>();
 
@@ -76,6 +82,14 @@ class Client extends JFrame {
 	
 		add( debug = new GenericChatWindow("Debug", ChatWindow.Type.STATUS) );
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
+
+		//handle the window closing.
+		this.addWindowListener( new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				reconnect = false;
+				irc.quit("Window closed!");
+			}
+		});
 
 		status.put("Creating a new IRC connection...");
 
@@ -95,29 +109,75 @@ class Client extends JFrame {
 		 */
 		sync = new client.SyncManager(irc);
 
-		try {
-			//@TODO
-			irc.connect();
-		} catch (java.io.IOException e) {
-			//@TODO...
-			e.printStackTrace();
-		}
+		int interval = 1;
+		final int max = 300;
 
-		irc.join( CHAN );
 
-		System.out.println("Thread sleeeeeping.");
+		while (reconnect) {
 
-		synchronized(irc) {
-			try {
-				irc.wait();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+			if ( irc.getState() != Connection.State.DISCONNECTED )
+				waitWhileConnected();
+
+			else {
+				try {
+					irc.connect();
+				} catch (Exception e) {
+
+					printException(e);
+
+					try {
+						Thread.sleep(interval*1000);
+					} catch (InterruptedException err) {
+						printException(err);
+					}
+
+					//double interval until success.
+					if (interval < max) 
+						interval *= 2;
+
+					continue;
+				}
+
+				interval = 1;
+				irc.join( CHAN );
 			}
 		}
 
-		System.out.println("IRC changed it's state... goodbye.");
+		System.exit(1);
 
-		System.exit(0);
+	}
+
+	/**
+	 * Handle reconnecting - 
+	 * wait while the IRC thread is connected...
+	 */
+	private void waitWhileConnected() {
+		synchronized(irc) {
+			try {
+				irc.wait();
+
+				disconnected();
+			} catch (InterruptedException e) {
+				printException(e);
+			}
+		}
+	}
+
+
+	private void printException(Throwable e) {
+		debug.put( new PaintableString(e.toString(), Color.red ) );
+
+		for (StackTraceElement st : e.getStackTrace())
+			debug.put( new PaintableString(st.toString(), Color.red ) );
+	}
+
+	private void disconnected() {
+
+		//when it is disconnected, remove allll of the windows..
+		for ( ChatWindow c : windows ) {
+			if ( c.getType() != ChatWindow.Type.STATUS )
+				remove(c);
+		}
 	}
 
 	/**
@@ -127,6 +187,7 @@ class Client extends JFrame {
 	 * @return chat window with the specified name, or null if no such window.
 	 */
 	private ChatWindow getWindow(String name) {
+
 		//heh this is efficient :/
 		for (ChatWindow c : windows) 
 			if ( c.getName().equals(name) )
@@ -141,7 +202,7 @@ class Client extends JFrame {
 	 *
 	 * @param c ChatWindow to remove
 	 */
-	private void remove(ChatWindow c) {
+	private synchronized void remove(ChatWindow c) {
 		
 		//remove the tab.
 		tabs.remove(c.getContentPane());
@@ -159,7 +220,7 @@ class Client extends JFrame {
 	 *
 	 * @param c ChatWindow to add
 	 */
-	private void add(ChatWindow c) {
+	private synchronized void add(ChatWindow c) {
 
 		//listen to commands from the window
 		c.addActionListener( commandListener );
@@ -261,6 +322,8 @@ class Client extends JFrame {
 			src.put( 
 				new QueryMessage( MessageType.ACTION, irc.nick(), cmd.getFinal(0), QueryMessage.Dir.OUTGOING)
 			);
+		} else if ( cmd.equals("QUIT") ) {
+				reconnect = false;
 		} else {
 			irc.send(cmd.cmd + " " + cmd.getFinal(0));
 		}
@@ -344,6 +407,14 @@ class Client extends JFrame {
 		 * Handle a message...
 		 */
 		public void handle(MessageEvent e) {
+			try {
+				handleEvent(e);
+			catch (Exception e) {
+				printException(e);
+			}
+		}
+
+		private void handleEvent(e) {
 
 			Message msg = e.getMessage();
 
@@ -356,11 +427,10 @@ class Client extends JFrame {
 			switch(msg.getType()) {
 		
 				//all user->user/channel messages.
-//				case CHANNEL:
 				case ACTION:
 				case QUERY: 
 				case NOTICE:
-					handlePM(msg);
+					handlePM(e);
 					break;
 
 				case PART:
@@ -455,6 +525,8 @@ class Client extends JFrame {
 					break;
 
 				case ERROR:
+				case DISCONNECT:
+
 					status.put( (new PaintableMessage()) 
 						.append("ERROR: ",Color.red).append("[",Color.darkGray).append(msg.getCommand()).append("] ",Color.darkGray)
 						.append( msg.getMessage(), Color.orange).indent(7)
@@ -465,7 +537,7 @@ class Client extends JFrame {
 
 				case LOGIN:
 				case INFO:
-					status.put( new QueryMessage(msg) );
+					status.put( new QueryMessage(e) );
 
 					//no break here for now...
 				default:
@@ -477,7 +549,9 @@ class Client extends JFrame {
 		/**
 		 * Handle PRIVMSG or NOTICE commands.
 		 */
-		private void handlePM(Message msg) {
+		private void handlePM(MessageEvent e) {
+
+			Message msg = e.getMessage();
 	
 
 			ChatWindow window = null;
@@ -514,20 +588,22 @@ class Client extends JFrame {
 			}
 
 			//now we have a window to put the damn thing in...
-			window.put( new QueryMessage(msg) );
+			window.put( new QueryMessage(e) );
 		}
 	};
 
-	/*
-	 * TEMP to provide working chatting...
+	/**
+	 * receives ActionEvents from the text field in the GUI console.
 	 */
 	private java.awt.event.ActionListener commandListener = new java.awt.event.ActionListener() {
 		public void actionPerformed(java.awt.event.ActionEvent e) {
 
 			//@TODO
-			if ( ! (e.getSource() instanceof ChatWindow) ) 
-				throw new RuntimeException("Why am I receiving commands from a non-chat window???");
-
+			if ( ! (e.getSource() instanceof ChatWindow) ) {
+				debug.put("Received an action command from something that wasn't a chatwindow????");
+				return;
+			}
+				
 			ChatWindow src = (ChatWindow)e.getSource();
 			String cmd = e.getActionCommand();
 
@@ -536,7 +612,12 @@ class Client extends JFrame {
 			if ( cmd.length() < 1 ) return;
 
 			if ( cmd.charAt(0) == '/' ) {
-				handleCommand(src, cmd);
+
+				try {
+					handleCommand(src, cmd);
+				} catch (Exception e) {
+					printException(e);
+				}
 
 			//if it's in a status window and it doesn't start with a /, do nothing
 			} else if ( src.getType() == ChatWindow.Type.STATUS ) {
