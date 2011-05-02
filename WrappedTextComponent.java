@@ -137,7 +137,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 		final FontMetrics METRICS = getFontMetrics(getFont());
 
 		final int WIDTH = getWidth() - 2*PAD;
-		final int indentsize = indent*METRICS.stringWidth(" ")*indent;
+		final int indentsize = METRICS.stringWidth(" ")*indent;
 
 		//hold the output in this...
 		List<Integer> rows = new util.LinkedList<Integer>();
