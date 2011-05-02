@@ -372,7 +372,7 @@ class Client extends JFrame {
 						//this is ME leaving...
 						//note that when I type /part, it just SENDS the part command
 						//the window isn't removed until the server responds with a PART reply...
-						if ( isFromMe() ) 
+						if ( msg.isFromMe() ) 
 							remove(win);
 
 						else 
