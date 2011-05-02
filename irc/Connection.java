@@ -185,10 +185,11 @@ public class Connection {
 		//command order per RFC2812
 
 		if ( pass != null )
-			sendRaw("PASS "+pass);
+			send("PASS",pass);
+		
 
-		sendRaw("NICK " +nick);
-		sendRaw("USER " + user + " 0 * : " + real);
+		send("NICK", nick);
+		send("USER" ,user, "0", "*", real);
 	}
 
 	private void ping() {
@@ -198,7 +199,7 @@ public class Connection {
 
 		last_ping = System.currentTimeMillis();
 			
-		send("PING", hostname, Priority.CRITICAL);
+		send(Priority.CRITICAL, "PING", hostname);
 	}
 
 	public void nick(String nick) {
@@ -210,22 +211,25 @@ public class Connection {
 	 */
 	public void nick(String nick, Priority p) {
 		//send the nick command...	
-		send("NICK", nick, p);
+		send(p, "NICK", nick);
 
 		this.nick = nick;
 
 		//@TODO monitor for failed nick changes.
-		//only set the nick on a successful reply...
+		//only set the nick on a successful reply..
 	}
 
 
 
 	public void part(String chan, String msg) {
-		send("PART " + chan, msg);
+		if (msg != null)
+			send("PART", chan, msg);
+		else 
+			send("PART", chan);
 	}
 
 	public void part(String chan) {
-		part(chan,"");
+		part(chan,null);
 	}
 
 	public void join(String chan) {
@@ -236,8 +240,9 @@ public class Connection {
 		msg(target, msg, Priority.MEDIUM);
 	}
 
+
 	public void msg(String target, String msg, Priority p) {
-		send("PRIVMSG " + target, msg, p);
+		send(p, "PRIVMSG",target, msg);
 	}
 
 	public void action(String target, String msg) {
@@ -261,7 +266,7 @@ public class Connection {
 	}
 
 	public void notice(String target, String msg, Priority p) {
-		send("PRIVMSG " + target, msg, p);
+		send(p,"NOTICE" ,target, msg);
 	}
 
 
@@ -274,9 +279,7 @@ public class Connection {
 	}
 
 	public void quit(String msg) {
-		send("QUIT", msg, Priority.LOW);
-//		conn.close();
-//		conn = null;
+		send(Priority.LOW, "QUIT", msg);
 	}
 
 	//handle a raw received message
@@ -287,28 +290,36 @@ public class Connection {
 
 	}
 
-	//public send
-	public void send(String cmd, String msg) {
-		send(cmd,msg,Priority.MEDIUM);
-	}
 
 	/**
 	 * NOTE: THIS CANNOT BE USED FOR REGISTERING.
 	 */
-	public void send(String cmd, String msg, Priority p) {
-		send(cmd + " :" + msg, p);
+	public void send(String[] args, Priority p) {
+
+		if (args.length == 0) return;
+
+		StringBuilder buf = new StringBuilder(args[0]);	
+
+		for ( int i = 1; i < args.length; buf.append( (i == args.length - 1) ? " :" : ' ').append(args[i]), ++i);
+		
+		send(buf.toString(), p);
 	}
 
-	public void send(String msg, Priority p) {
-
-		if ( state != State.REGISTERED )
-			throw new RuntimeException("Cannot execute commands until the connection is registered.");
-
-		sendRaw(msg, p);	
+	public void send(Priority p, String... args) {
+		send(args,p);
 	}
+
+	public void send(String ... args) {
+		send(args,Priority.MEDIUM);
+	}
+
 
 	public void send(String msg) {
 		send(msg, Priority.MEDIUM);
+	}
+
+	public void send(String msg, Priority p) {
+		sendRaw(msg,p);
 	}
 
 	private void sendRaw(String cmd) {
@@ -494,7 +505,7 @@ public class Connection {
 			} else if ( msg.getType() == MessageType.PING ) {
 				//preempt! - and this is raw for a very good reason:
 				//sometimes this needs to be sent during registration
-				sendRaw( "PONG :"+msg.getMessage(), Priority.CRITICAL );
+				send( Priority.CRITICAL, "PONG", msg.getMessage() );
 
 			} else if ( msg.getCommand().equals("ERROR") ) {
 				setState( State.DISCONNECTED );
