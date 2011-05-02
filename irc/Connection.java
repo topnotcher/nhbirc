@@ -118,6 +118,10 @@ public class Connection {
 		conn = new IrcConnection();
 
 
+		if ( state != State.CONNECTED )
+			throw new RuntimeException("Connection is not connected!");
+
+
 		//handle messages in a separate thread
 		//so the socket I/O never pauses
 		//(This can be important in the case of a flood of messages which require
@@ -135,15 +139,10 @@ public class Connection {
 			.addCommand( "ERROR" )	
 		;
 
-		//@TODO
-		if ( state != State.CONNECTED )
-			throw new RuntimeException("Connection is not connected!");
-
 		//initiatite registration
 		register();
 
 		try {
-	
 			/**
 			 * Block for a state change, up to 30 seconds.
 			 */
@@ -397,7 +396,9 @@ public class Connection {
 		}
 
 		private IrcMessageSubscription register() {
-			handlers.add(this);
+			synchronized(handlers) {
+				handlers.add(this);
+			}
 			return this;
 		}
 
@@ -465,11 +466,12 @@ public class Connection {
 				setState(State.REGISTERED);
 
 				hostname = msg.getSource().getHost();
-			} else if ( msg.getType() == MessageType.PING )
-				//preempt!
-				send( "PONG", msg.getMessage(), Priority.CRITICAL );
+			} else if ( msg.getType() == MessageType.PING ) {
+				//preempt! - and this is raw for a very good reason:
+				//sometimes this needs to be sent during registration
+				sendRaw( "PONG :"+msg.getMessage(), Priority.CRITICAL );
 
-			else if ( msg.getCommand().equals("ERROR") ) {
+			} else if ( msg.getCommand().equals("ERROR") ) {
 				setState( State.DISCONNECTED );
 				conn = null;
 
@@ -524,6 +526,7 @@ public class Connection {
 				//nothing to do
 				if (msg == null) continue;
 
+			
 				Iterator<IrcMessageSubscription> it = handlers.iterator();
 					
 				while (it.hasNext()) try {

@@ -7,11 +7,30 @@ public class QueryMessage extends PaintableMessage {
 
 	public static enum Dir { INCOMING, OUTGOING }
 
-	public QueryMessage(irc.Message msg) {
-		this(msg.getType(), msg.getSource().getNick(), msg.getMessage(), Dir.INCOMING);
+	public QueryMessage(irc.Message msg) { 
+	
+		//some networks are offensive, and they'll send notices (especially AUTH
+		//with no prefix. IMO, that's just god damn annoying.  
+		//Use the extra bandwidth and put SOMETHING in there
+		//
+		//ANYWHO - we'll assume the target is interesting in those cases... until a network breaks that.
+
+		String src = msg.getSource().scope(irc.MessageTarget.Scope.NONE) ? msg.getTarget().getNick() : msg.getSource().getNick();
+		irc.MessageType type = msg.getType();
+
+		//servers always notice. that's just how it is.
+		if ( msg.getSource().scope(irc.MessageTarget.Scope.NONE) || msg.getSource().scope(irc.MessageTarget.Scope.SERVER) )
+			type = irc.MessageType.NOTICE;
+
+		init(type, src, msg.getMessage(), Dir.INCOMING);
 	}
 
 	public QueryMessage(irc.MessageType type, String src, String msg, Dir dir) {
+		init(type, src, msg, dir);
+	}
+
+	public void init(irc.MessageType type, String src, String msg, Dir dir) {
+
 
 		Color msgColor = null;
 		

@@ -116,7 +116,7 @@ class MessageParser {
 					type = MessageType.CHANNEL;
 
 				else 
-					type = MessageType.QUERY;
+				type = MessageType.QUERY;
 			}
 
 			else if ( command.equals("JOIN") ) {
@@ -125,10 +125,24 @@ class MessageParser {
 				//make the channel the target for JOIN
 				//VIA rfc2812, servers shouldn't use a CSV list
 				//when sending JOINs to clients (e.g. this is valid)
-				message.setTarget( new MessageTarget( message.getMessage() ) );
+				//
+				//
+				/** 
+				 * This is really damn weird, but
+				 * some IRCDs send a join like 
+				 * nick!user@host JOIN :#channel
+				 *
+				 * while some use:
+				 * nick!user@host JOIN #channel
+				 */
+
+				//if the "target" is already a channel, do nothing
+				//otherwise, extract the "body" and make that the target...
+
+				if ( !message.getTarget().scope(MessageTarget.Scope.CHANNEL) )
+					message.setTarget( new MessageTarget( message.getMessage() ) );
 
 				priority = Priority.HIGH;
-
 			}
 
 			else if ( command.equals("TOPIC") )
@@ -144,8 +158,21 @@ class MessageParser {
 			else if ( command.equals("KICK") )
 				type = MessageType.PART;
 
-			else if ( command.equals("PART") )
+			else if ( command.equals("PART") ) {
 				type = MessageType.PART;
+
+				//see the note under JOIN. Some stupid IRCDs do this differently
+				//on gamesurge, you get two different messages depending on whether or not you had a part message...
+				//_mario_!~_mario_@131.128.211.16 PART #mariotestchannel1 :message here
+				//_mario_!~_mario_@131.128.211.16 PART :#mariotestchannel1
+				//how is that for annoying as hell?
+
+				if ( !message.getTarget().scope(MessageTarget.Scope.CHANNEL) ) {
+					message.setTarget( new MessageTarget( message.getMessage() ) );
+					message.setMessage("");
+				}
+
+			}
 
 			else if ( command.equals("MODE") )
 				type = MessageType.MODECHANGE;
@@ -156,15 +183,17 @@ class MessageParser {
 			else if ( command.equals("ERROR") )
 				type = MessageType.ERROR;
 
+			else if ( command.equals("PING") ) {
+				type = MessageType.PING;
+				priority = Priority.CRITICAL;
+			}
+
 			else 
 				type = MessageType.UNKNOWN;
 		}
 
 		if ( type == MessageType.ERROR )
 			priority = Priority.HIGH;
-
-		else if ( type == MessageType.PING )
-			priority = Priority.CRITICAL;
 
 		else if ( type ==  MessageType.UNKNOWN )
 			priority = Priority.LOW;
