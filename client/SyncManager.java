@@ -24,19 +24,15 @@ public class SyncManager implements MessageHandler {
 	//		.addType( MessageType.WHO )
 		;
 	}
-	private void print(String m) {
-		System.out.println(m);
-	}
-	public void handle( Message m ) {
+	public void handle( MessageEvent e ) {
 
-		System.out.println(m.getRaw());
+		Message m = e.getMessage();
 
 		User user;
 
 		switch ( m.getType() ) {
 			
 			case JOIN:
-				print( m.getSource() + " JOINS " + m.getTarget() );
 				getUserFromTarget( m.getSource() ).join( getChannel(m.getTarget().getChannel()) );
 				break;
 
@@ -50,11 +46,9 @@ public class SyncManager implements MessageHandler {
 				//change the nick, notify the channels
 				user.nick( m.getTarget().getNick() );
 		
-				print( m.getSource() +" CHANGES NICK TO "+ m.getTarget() );
 				break;
 
 			case QUIT:
-				print(m.getSource() + " QUITS ("+m.getMessage()+")");
 
 				user = getUserFromTarget(m.getSource());
 				user.quit();
@@ -65,12 +59,11 @@ public class SyncManager implements MessageHandler {
 			//and remove all the users from that channel.
 			//if a user is in 0 channels, then remove the user from the hash map...
 			case PART:
-				print(m.getSource() + " PARTS " + m.getTarget() + " (" + m.getMessage() + ")" );
 
 				user = getUserFromTarget(m.getSource());
 				user.part( getChannel( m.getTarget().getChannel() ) );
 
-				if ( user.getNick().equals( irc.nick() ) ) 
+				if ( m.isFromMe() ) 
 					getChannel( m.getTarget().getChannel() ).destroy();
 
 				break;
@@ -85,8 +78,7 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			default:
-				print("????");
-
+				break;
 		}
 
 	}
