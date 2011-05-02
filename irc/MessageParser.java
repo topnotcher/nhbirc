@@ -162,7 +162,6 @@ class MessageParser {
 			}
 
 			else if ( command.equals("MODE") ) {
-				System.out.println("got mode command: " + message.getRaw());
 
 				if ( message.getTarget().scope( MessageTarget.Scope.CHANNEL ) )
 					type = MessageType.CHANNELMODE;
