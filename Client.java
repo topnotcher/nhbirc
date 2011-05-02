@@ -409,12 +409,12 @@ class Client extends JFrame {
 		public void handle(MessageEvent e) {
 			try {
 				handleEvent(e);
-			catch (Exception e) {
-				printException(e);
+			} catch (Exception err) {
+				printException(err);
 			}
 		}
 
-		private void handleEvent(e) {
+		private void handleEvent(MessageEvent e) {
 
 			Message msg = e.getMessage();
 
@@ -615,8 +615,8 @@ class Client extends JFrame {
 
 				try {
 					handleCommand(src, cmd);
-				} catch (Exception e) {
-					printException(e);
+				} catch (Exception err) {
+					printException(err);
 				}
 
 			//if it's in a status window and it doesn't start with a /, do nothing
