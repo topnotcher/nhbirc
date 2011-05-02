@@ -9,13 +9,14 @@ import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.NoSuchElementException;
 
+import util.FixedStack;
 
 /**
  * A component that displays word-wrapped lines of text.
  * 
  * @TODO Convert this to a Document,View, JTextComponent, so it actually "acts like" text.
  */
-class WrappedTextComponent extends JComponent implements Iterable<PaintableText> {
+class WrappedTextComponent extends JComponent {
 
 	/**
 	 * Number of lines of text to store.
@@ -26,24 +27,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 	//two pixesls between lines, on sides, from top/bottom.
 	private final int PAD = 2;
 
-	/**
-	 * First node in a linked data structure containing lines of text
-	 */
-	private TextNode head = null;
-
-	/**
-	 * Last node
-	 * Could use linkedlist class here, but making a new 
-	 * data structure allows me to keep track of the last node, 
-	 * which allows for easy removing of the last node when BUF_SIZE is exceeded
-	 */
-	private TextNode foot = null;
-
-	/**
-	 * # of lines of text currently stored.
-	 */
-	private int size = 0;
-
+	private List<PaintableText> stack = new FixedStack<PaintableText>(BUF_SIZE);
 
 	public WrappedTextComponent() { 
 	}
@@ -56,36 +40,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 	 * Append a line of text to the component
 	 */
 	public void append( PaintableText text ) {
-
-		TextNode add = new TextNode( text );
-
-		if ( head != null) {
-			add.prev = null;
-			add.next = head;
-
-			head.prev = add;
-
-			head = add;
-		} else {
-			head = add;
-			foot = add;
-		}
-
-		//if the message > the buffer size,
-		//we drop the last item...
-		if ( ++size > BUF_SIZE ) {
-			
-			//set a new foot for the list
-			foot = foot.prev;
-			
-			//for the hell of it, remove the old foot's reference to the list
-			//(Just in case it is left hanging around or something)
-			foot.next.prev = null;
-
-			//then mark the foot as the end of the list;
-			foot.next = null;
-		}
-
+		stack.add(text);
 		repaint();
 	}
 
@@ -104,7 +59,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 		int indent;
 
 		int remaining = ROWS;
-		Iterator<PaintableText> lines = iterator();
+		Iterator<PaintableText> lines = stack.iterator();
 
 		while ( lines.hasNext() && remaining > 0 ) {
 
@@ -202,51 +157,5 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 			rows.add(row);
 
 		return rows.toArray(new Integer[rows.size()]);
-	}
-
-	public Iterator<PaintableText> iterator() {
-		return new Iterator<PaintableText>() {
-			private TextNode cur = null;
-
-			public boolean hasNext() {
-				return ( cur == null && head != null ) || ( cur != null && cur.next != null );
-			}
-
-			public PaintableText next() throws NoSuchElementException {
-				
-				if ( cur == null && head != null)
-					cur = head;
-
-				else if ( cur.next != null )
-					cur = cur.next;
-
-				else
-					throw new NoSuchElementException( "You should have called hasNext()" );
-
-				return cur.text;
-			}
-		
-			public void remove() throws UnsupportedOperationException {
-				throw new UnsupportedOperationException( "remove() not supported" );
-			}
-		};
-	}
-
-	private class TextNode {
-		private PaintableText text;
-
-		private TextNode next = null;
-
-		//keeping track of previous means
-		//the last node always has a pointer
-		//to the next-to-last node
-		//so when BUF_SIZE is exceeded,
-		//it is trivial to set next-to-last to last
-		//and drop the last node from the list.
-		private TextNode prev = null;
- 
-		private TextNode( PaintableText text ) {
-			this.text = text;
-		}
 	}
 }
