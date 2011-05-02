@@ -20,9 +20,12 @@ public class SyncManager implements MessageHandler {
 			.addType( MessageType.PART )
 			.addType( MessageType.NAME )
 			.addType( MessageType.TOPIC )
+			.addType( MessageType.CHANNELMODE )
 			.addType( MessageType.TOPICCHANGE )
 	//		.addType( MessageType.WHO )
 		;
+//		m!topnotcher@13.37 MODE #foo +sa fubar
+
 	}
 	public void handle( MessageEvent e ) {
 
@@ -77,6 +80,16 @@ public class SyncManager implements MessageHandler {
 				getChannel( m.getTarget().getChannel() ).setTopic(m.getMessage());
 				break;
 
+			case CHANNELMODE:
+				System.out.println("CHANNEL MODE");
+				//@TODO names helper?
+				//This is dirty and inefficient, but dealing with mode changes
+				//is incredibly difficult as different servers
+				//support different modes. This is the most reliable way
+				//to keep the user list synched (well as far as the ops go)
+				e.getSource().send(Priority.LOW, "NAMES" , m.getTarget().getChannel());
+				break;
+
 			default:
 				break;
 		}
@@ -84,6 +97,8 @@ public class SyncManager implements MessageHandler {
 	}
 
 	private void handleNames(Message m) {
+
+		if ( m.numArgs() < 3) return;
 
 		/**
 		 * On bulk add operations,
@@ -95,6 +110,11 @@ public class SyncManager implements MessageHandler {
 			return;
 		}
 
+		//NAMES fubar = #channel :list
+		//check # of arguments, and verify that there is an =, which means this is
+		//a names list for a channel == next argument. 
+		if ( m.numArgs() < 5 || m.get(2).charAt(0) == '*' )  return;
+		
 		Channel c = getChannel( m.getArg(3) );
 
 		StringTokenizer st = new StringTokenizer( m.getMessage(), " ");

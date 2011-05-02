@@ -148,9 +148,6 @@ class MessageParser {
 				type = MessageType.PART;
 			}
 
-			else if ( command.equals("MODE") )
-				type = MessageType.MODECHANGE;
-
 			else if ( command.equals("QUIT") )
 				type = MessageType.QUIT;
 
@@ -163,6 +160,16 @@ class MessageParser {
 				type = MessageType.PING;
 				priority = Priority.CRITICAL;
 			}
+
+			else if ( command.equals("MODE") ) {
+				System.out.println("got mode command: " + message.getRaw());
+
+				if ( message.getTarget().scope( MessageTarget.Scope.CHANNEL ) )
+					type = MessageType.CHANNELMODE;
+				else
+					type = MessageType.USERMODE;
+			}
+
 
 			else 
 				type = MessageType.UNKNOWN;

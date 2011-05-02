@@ -13,8 +13,8 @@ public class MessageTarget {
 	 */
 	MessageTarget( String target ) {
 		this.target = target;
-
-		if ( target.startsWith("#") )
+		
+		if (isChannel(target) )
 			scope = Scope.CHANNEL;
 
 		else if ( target.indexOf('@') != -1 )
@@ -25,6 +25,20 @@ public class MessageTarget {
 
 		else 
 			this.scope = Scope.NICK;
+	}
+
+	private static boolean isChannel(String id) {
+
+		switch( id.charAt(0) ) {
+			case '#':
+			case '+':
+			case '!':
+			case '&':
+				return true;
+
+			default:
+				return false;
+		}
 	}
 
 	MessageTarget() {
