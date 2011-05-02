@@ -139,11 +139,11 @@ public class Message implements Comparable<Message> {
 	}
 
 	public int compareTo(Message m) {
-		int val = priority.getValue() - m.priority.getValue();
+		return  priority.getValue() - m.priority.getValue();
 
-		if (val != 0) return val;
+//		if (val != 0) return val;
 
-		return (int)(time - m.time);
+//		return (int)(time - m.time);
 	}
 
 

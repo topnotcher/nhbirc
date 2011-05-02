@@ -5,8 +5,10 @@ import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-import java.util.concurrent.PriorityBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+//import java.util.concurrent.PriorityBlockingQueue;
+//import java.util.concurrent.BlockingQueue;
+import util.PriorityBlockingQueue;
+import util.BlockingQueue;
 
 import java.util.Iterator;
 import java.util.List;
@@ -577,7 +579,7 @@ public class Connection {
 
 		private OutgoingMessage(String msg, Priority priority) {
 			this.priority = priority;
-			this.msg = msg;// + "\r\n";
+			this.msg = msg;
 		}
 
 		public String getMessage() {
