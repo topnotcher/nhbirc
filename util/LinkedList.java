@@ -254,11 +254,9 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 		 */
 		public void remove() throws IllegalStateException {
 
-
 			//ensure that next() has been called.
-			if (current == null || head == null) {
+			if (current == null || head == null) 
 				throw new IllegalStateException("No item selected.");
-			}
 
 			//handle head specially because if head is removed
 			//we need to set a new head. (a headless list is bad)
@@ -268,25 +266,24 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 				if (head != null)
 					head.prev = null;
 
-				--size;
-				--idx;
 				current = null;
-				return;
+			} else {
+
+				//item before the one being removed
+				Node index = current.prev;
+
+
+				//remove the item in the linked list by skipping over it.
+				//the node after the node before the current node is now the next node.
+				current.prev.next = current.next;
+
+				//the node before the node after the current node is now the node before the current node.
+				current.next.prev = current.prev.next;
+
+				//this isn't really necessary, but it's more clear
+				current = current.prev;
 			}
 
-			//item before the one being removed
-			Node index = current.prev;
-
-
-			//remove the item in the linked list by skipping over it.
-			//the node after the node before the current node is now the next node.
-			current.prev.next = current.next;
-
-			//the node before the node after the current node is now the node before the current node.
-			current.next.prev = current.prev.next;
-
-			//this isn't really necessary, but it's more clear
-			current = current.prev;
 
 			--size;
 			--idx;

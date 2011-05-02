@@ -26,16 +26,29 @@ public class PriorityBlockingQueue<T extends Comparable<T>> implements BlockingQ
  	*/
 	public synchronized boolean offer(T item) {
 		
+
+		if (item == null)
+			throw new NullPointerException("Cannot queue a null");
+
 		ListIterator<T> it = list.listIterator();
 
-		//stops when there is no next element, or item < next.
-		while ( it.hasNext() && item.compareTo(it.next()) >= 0 );
+		while ( true ) {
 
-		//IF there's a previous item, we need to rewind
-		//NOTE: As far as efficiency, I'm relying on the fact that I *KNOW*
-		//that each node in the list contains a reference to the previous node 
-		//(e.g. it doesn't need to seek)
-		if (it.hasPrevious()) it.previous();
+			//we insert the item at the end of the list
+			if (!it.hasNext())
+				break;
+
+			//we found an item of a lower priority
+			if ( item.compareTo(it.next()) < 0 ) {
+
+				//we insert before that item.
+				//I'm relying on the fact that I *know*
+				//this linked list item can find the previous item
+				//"quickly" (without seeking).
+				if (it.hasPrevious()) it.previous();
+				break;
+			}
+		}		
 
 		it.add(item);
 
