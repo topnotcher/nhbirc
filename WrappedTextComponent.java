@@ -110,7 +110,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 
 			PaintableText text = lines.next();
 			String line = text.getText();
-			indent = text.etIndent();
+			indent = text.getIndent();
 
 			Integer[] rows = getRows( line, indent ); 
 					
@@ -137,7 +137,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 		final FontMetrics METRICS = getFontMetrics(getFont());
 
 		final int WIDTH = getWidth() - 2*PAD;
-		final int indentsize = indent*METRICS.stringWIDTH(" ")*indent;
+		final int indentsize = indent*METRICS.stringWidth(" ")*indent;
 
 		//hold the output in this...
 		List<Integer> rows = new util.LinkedList<Integer>();
@@ -182,7 +182,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 					} else {
 						rows.add(row);
 						row = 1;
-						remaining = WIDTH - METRICS.stringWidth(" ")*indent-width;
+						remaining = WIDTH - indentsize - width;
 					}
 				}
 			
@@ -194,7 +194,7 @@ class WrappedTextComponent extends JComponent implements Iterable<PaintableText>
 				rows.add(row);
 				//in any case...rows.add(row);
 				row = tok.length();
-				remaining = WIDTH - METRICS.stringWidth(" ")*indent - METRICS.stringWidth(tok);
+				remaining = WIDTH - indentsize - width;
 			}
 		}
 
