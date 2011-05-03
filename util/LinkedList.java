@@ -279,17 +279,26 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 				//item before the one being removed
 				Node index = current.prev;
 
+				//prev->current->next
+				//
+				//prev->next
+
+				//current.prev should never be null 
+				//(only in the case of head, which is handled above.
+				current.prev.next = current.next;
+
+				//there may not be a next one, however.
+				//(e.g. this is the last element)
+				if (current.next != null) 
+					current.next.prev = current.prev;
+
 
 				//remove the item in the linked list by skipping over it.
 				//the node after the node before the current node is now the next node.
 				current.prev.next = current.next;
 
-				if (current.next.prev != null)
-					//the node before the node after the current node is now the node before the current node.
-					current.next.prev = current.prev.next;
-
-				//this isn't really necessary, but it's more clear
-				current = current.prev;
+				//now current is still the removed node...
+				//a call to next or previous will be the same.
 			}
 
 
