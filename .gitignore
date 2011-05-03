@@ -2,3 +2,4 @@ foo
 specification
 *.class
 *.jar
+doc/html

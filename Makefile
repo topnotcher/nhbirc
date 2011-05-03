@@ -1,10 +1,9 @@
 JC=javac
 CLASSPATH=.
-JFLAGS=-g -classpath $(CLASSPATH)
-SOURCES=$(shell find . -name '*.java')
-
+JFLAGS=-g -classpath $(CLASSPATH) 
+SRC=.
+SOURCES=$(shell find $(SRC) -name '*.java')
 OBJECTS=$(SOURCES:.java=.class)
-
 DOCDIR="doc/html/"
 
 all: classes
@@ -14,19 +13,17 @@ all: classes
 .java.class:
 	$(JC) $(JFLAGS) $*.java
 
-default: classes
-
-classes: $(SOURCES:.java=.class)
+classes: $(OBJECTS)
 
 run: all
 	java Launcher
 
-jar:
-	jar cfe client.jar Launcher $(shell find . -name '*.class')
+jar: classes
+	jar cfe client.jar Launcher *.class util/*.class irc/*.class client/*.class
 
 docs:
 	$(RM) -r $(DOCDIR)/*
-	javadoc -linksource -sourcetab 4 -private -classpath . -sourcepath . -d $(DOCDIR)  $(shell find . -name '*.class')
+	javadoc -private -classpath $(SRC) -sourcepath $(SRC) -d $(DOCDIR) *.java util irc client
 
 clean:
 	$(foreach var, $(shell find . -name '*.class'), $(RM) '$(var)';)
