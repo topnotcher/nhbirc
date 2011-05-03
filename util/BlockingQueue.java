@@ -17,4 +17,6 @@ public interface BlockingQueue<T> {
 	public T poll(long timeout, TimeUnit unit) throws InterruptedException;
 
 	public T poll();
+
+	public void clear();
 }

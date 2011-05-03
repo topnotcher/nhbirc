@@ -15,9 +15,10 @@ public class PriorityBlockingQueue<T extends Comparable<T>> implements BlockingQ
 	/**
 	 * Linked-list to back the queue.
 	 */
-	private List<T> list = new LinkedList<T>();
+	private List<T> list;
 
 	public PriorityBlockingQueue() {
+		clear();
 	}
 
 	/**
@@ -77,5 +78,9 @@ public class PriorityBlockingQueue<T extends Comparable<T>> implements BlockingQ
 		if (list.size() == 0) return null;
 
 		return list.remove(0);
+	}
+
+	public synchronized void clear() {
+		 list = new LinkedList<T>();
 	}
 }
