@@ -1,0 +1,79 @@
+-----------  Running  -------------
+
+The easy way: Just run the jar.
+
+linux: make run
+
+Windows/something: 
+	You're on your own. 
+	The classpath argument must be set to the top level source directory when compiling
+
+
+------------ Commands -------------
+
+/JOIN #channel[,#channel1[#channel2,...]]
+	- Issues a JOIN command to the server.
+	- A window will open upon receipt of the JOIN reply from the server.
+
+	Example: /join #foo
+
+/PART
+	- Issues a PART command to the server. The window will be closed upon receipt of the part message
+	  from the server. (which should always be received. RFC specifies that servers MUST accept PART)
+
+	/PART[ #channel[ message]
+		- issues a PART for #channel with message message
+	
+	/PART[ message]
+		- IF executed in a channel window, issues a PART for that with message message
+		- has no effect if executed in a query/status window
+
+	Example: /part I'm out of here...
+
+/ME action
+
+	- Valid in a CHANNEL or QUERY window.
+	- Sends a CTCP ACTION to the "target" of the window (e.g. channel or user)
+	
+	Example: /me runs away
+
+/MSG target message
+	- Sends a message to the specified target, which may be a channel or a user.
+	- if the target is a user, a new window will be opened if necessary.
+
+	Example: /msg foo HI
+
+/NOTICE target message
+ 	- sends a NOTICE to the specified target, which may be a channel or a user.
+	- printed in the active window.
+
+	Example: /notice foo CHECK YOUR PM
+
+/CLOSE
+	- Closes the currently QUERY window.
+	- if the window is a channel window, a PART will be issued (see above)
+	- has no effect in STATUS windows.
+
+	Example: /close
+
+/QUIT[ message]
+	- sends a QUIT to the server with quit message 'message'
+	- does not close the window
+
+Unknown Commands:
+	There is support for unknown commands, provided that none of the arguments require spaces.
+
+	Most unknown commands will only cause output to be displayed in the status or debug window.
+	
+	Examples:
+	
+		/whois user
+			- debug window
+
+		/names 
+			- will cause a refresh of the user list.
+
+		/topic #foo
+			- properly handled.
+
+		/mode #foo +o foo

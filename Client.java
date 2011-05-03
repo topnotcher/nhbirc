@@ -1,18 +1,17 @@
 
-import java.awt.BorderLayout;
-//import javax.swing.JFrame;
-import javax.swing.*;
+import javax.swing.JFrame;
+import javax.swing.JTabbedPane;
 
 import java.awt.Color;
+import java.awt.Container;
+
 
 import irc.*;
 
 import java.util.List;
 
-import java.awt.event.WindowEvent;
-import java.awt.event.WindowAdapter;
 
-class Client extends JFrame {
+class Client {
 
 	/**
 	 * IRC Connection object.
@@ -57,25 +56,20 @@ class Client extends JFrame {
 	 * Basic standalone starter
 	 */
 	public static void main(String[] argv) {
-		new Client();
+		System.err.println("Deprecated. Run via Launcher instead.");
+
 	}
 
 	/**
 	 * **BASIC** prototype.
 	 */
-	private Client() {
-		
-		setSize(1000,800);
-
-		setTitle("NHBiRC");
-
+	Client(Container parent) {
+	
 		windows = new util.LinkedList<ChatWindow>();
-
-		setVisible(true);
 
 		//tabs is the main viewport.
 		tabs = new JTabbedPane();
-		add(tabs);
+		parent.add(tabs);
 
 		//tabs contain a status window.
 		tabs.setTabPlacement(JTabbedPane.BOTTOM);
@@ -85,7 +79,6 @@ class Client extends JFrame {
 
 		connect();
 
-		registerWindowListener();
 	}
 
 
@@ -116,31 +109,6 @@ class Client extends JFrame {
 		}
 
 		irc.join( CHAN );
-
-	}
-
-	private void registerWindowListener() {
-	
-		//handle the window closing.
-		this.addWindowListener( new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				reconnect = false;
-
-				//in theory,
-				irc.quit("Window closed!");
-
-				//wait 10 seconds for IRC to change its state...
-				synchronized(irc) {
-					try {
-						irc.wait(10);
-					} catch (Exception err) {
-
-					}
-				}
-
-				System.exit(0);
-			}
-		});
 
 	}
 
