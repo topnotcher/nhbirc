@@ -5,7 +5,6 @@ SRC=.
 SOURCES=$(shell find $(SRC) -name '*.java')
 OBJECTS=$(SOURCES:.java=.class)
 DOCDIR="doc/html/"
-
 all: classes
 		
 .SUFFIXES: .java .class
@@ -27,4 +26,6 @@ docs:
 
 clean:
 	$(foreach var, $(shell find . -name '*.class'), $(RM) '$(var)';)
-	$(RM) *.jar
+
+submit: all 
+	git archive --format=tar  HEAD --prefix=tmp/ | (ssh gbowser@london.cs.uri.edu ./submitfinal.sh) 

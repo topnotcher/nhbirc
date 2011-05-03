@@ -1,13 +1,17 @@
 -----------  Running  -------------
 
-The easy way: Just run the jar.
+The easy way: Run the jar
 
 linux: make run
 
 Windows/something: 
-	You're on your own. 
-	The classpath argument must be set to the top level source directory when compiling
+	Run Launcher.class. As for compiling - You're on your own.  Just make sure classpath is set to the top level source directory.
+	(e.g. javac -classpath . Launcher.java)
 
+
+The program will automatically connect.
+
+API Docs: docs/html or http://homepage.cs.uri.edu/~gbowser/courses/csc212/final
 
 ------------ Commands -------------
 
