@@ -306,7 +306,13 @@ public class Connection {
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
 	
-		recvQ.offer( MessageParser.parse( this, raw ) );
+		try {
+			recvQ.offer( MessageParser.parse( this, raw ) );
+
+		//probably best if incoming messages can't kill the client.
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -587,8 +593,10 @@ public class Connection {
 				}
 
 				//ping timeout
-				if ( System.currentTimeMillis() - last_rx > MAX_IDLE ) 
+				if ( System.currentTimeMillis() - last_rx > MAX_IDLE ) { 
+					System.err.println("PING TIMEOUT");
 					conn.close();
+				}
 				
 				//active keep-alives.
 				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
@@ -677,7 +685,7 @@ public class Connection {
 		
 				} catch (java.io.IOException e) {
 					e.printStackTrace();
-//					close();
+					close();
 				}
 			}
 		};
@@ -717,8 +725,8 @@ public class Connection {
 				out.print( "\r\n" );
 				out.flush();
 			} catch (Exception e) {
-				e.printStackTrace();
-			//	close();
+//				e.printStackTrace();
+				close();
 			}
 		}
 
@@ -733,7 +741,7 @@ public class Connection {
 			//(which doesn't make sense...)
 			if (state == State.DISCONNECTED) return;
 
-			last_tx = System.currentTimeMillis();
+			last_rx = System.currentTimeMillis();
 
 			handleRaw(msg);
 		}
