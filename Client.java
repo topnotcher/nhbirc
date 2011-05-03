@@ -542,9 +542,16 @@ class Client extends JFrame {
 
 				case LOGIN:
 				case INFO:
-					status.put( new QueryMessage(e) );
+				       status.put( new QueryMessage(e) );
 
-					//no break here for now...
+				       StringBuilder buf = new StringBuilder(msg.get(2));
+
+				       for ( int i = 2; i < msg.numArgs(); buf.append(' ').append(msg.get(i)), ++i);   
+
+				       status.put( new QueryMessage(MessageType.NOTICE, msg.getSource().toString(), buf.toString(), QueryMessage.Dir.INCOMING ) );
+
+				       break;
+
 				default:
 					debug.put( msg.getRaw() );	
 					break;
