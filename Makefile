@@ -20,5 +20,9 @@ classes: $(SOURCES:.java=.class)
 run: all
 	java Client
 
+jar:
+	jar cfe client.jar Client $(shell find . -name '*.class')
+
 clean:
 	$(foreach var, $(shell find . -name '*.class'), $(RM) '$(var)';)
+	$(RM) *.jar
