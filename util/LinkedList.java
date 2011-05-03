@@ -284,8 +284,9 @@ public class LinkedList<T> extends AbstractSequentialList<T> {
 				//the node after the node before the current node is now the next node.
 				current.prev.next = current.next;
 
-				//the node before the node after the current node is now the node before the current node.
-				current.next.prev = current.prev.next;
+				if (current.next.prev != null)
+					//the node before the node after the current node is now the node before the current node.
+					current.next.prev = current.prev.next;
 
 				//this isn't really necessary, but it's more clear
 				current = current.prev;
