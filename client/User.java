@@ -9,7 +9,7 @@ import java.util.Iterator;
  * NOTE: In general, references to this object shouldn't be kept;
  * they should be obtained through SyncManager.getUser() each time they are needed.
  */
-class User implements Comparable<User>, Iterable<Channel> {
+public class User implements Comparable<User>, Iterable<Channel> {
 
 	private String nick;
 

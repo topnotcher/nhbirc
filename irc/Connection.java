@@ -529,8 +529,7 @@ public class Connection {
 				send( Priority.CRITICAL, "PONG", msg.getMessage() );
 
 			} else if ( msg.getCommand().equals("ERROR") ) {
-				setState( State.DISCONNECTED );
-				conn = null;
+				conn.close();
 
 			//@TODO huge mess
 			//	-handle erroneous nickname by choosing a random one.

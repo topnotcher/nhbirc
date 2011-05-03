@@ -1,9 +1,3 @@
-/**
-* Greg Bowser
-* CSC212 Program02
-* 23 February 2011
-*/
-
 
 import javax.swing.JPanel;
 import java.awt.Image;

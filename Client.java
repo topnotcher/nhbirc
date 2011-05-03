@@ -83,22 +83,21 @@ class Client extends JFrame {
 		add( debug = new GenericChatWindow("Debug", ChatWindow.Type.STATUS) );
 		add( status = new GenericChatWindow("Status", ChatWindow.Type.STATUS) );
 
-		//handle the window closing.
-		this.addWindowListener( new WindowAdapter() {
-			public void windowClosing(WindowEvent e) {
-				reconnect = false;
-				irc.quit("Window closed!");
-			}
-		});
+		connect();
 
+		registerWindowListener();
+	}
+
+
+	private void connect() {
 		status.put("Connecting...");
 
 		//create a new IRC connection
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
+	
 
-
-		//prototyping purposes, just receive ALL messages...
-		irc.addMessageHandler(messageHandler);
+		//messageHandler receives *all* messages.
+		irc.addMessageHandler( messageHandler );
 
 		/**
 		 * IMPORTANT: Sync is registered after messageHandler.
@@ -109,18 +108,45 @@ class Client extends JFrame {
 		 */
 		sync = new client.SyncManager(irc);
 
-			try {
+		try {
 
-				irc.connect();
-			} catch (ConnectionException e) {
-				printException(e);
-			}
+			irc.connect();
+		} catch (ConnectionException e) {
+			printException(e);
+		}
 
-			irc.join( CHAN );
+		irc.join( CHAN );
 
 	}
 
+	private void registerWindowListener() {
+	
+		//handle the window closing.
+		this.addWindowListener( new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				reconnect = false;
 
+				//in theory,
+				irc.quit("Window closed!");
+
+				//wait 10 seconds for IRC to change its state...
+				synchronized(irc) {
+					try {
+						irc.wait(10);
+					} catch (Exception err) {
+
+					}
+				}
+
+				System.exit(0);
+			}
+		});
+
+	}
+
+	/**
+	 * prints an exception to the debug window.
+	 */
 	private void printException(Throwable e) {
 		debug.put( new PaintableString(e.toString(), Color.red ) );
 
@@ -129,6 +155,10 @@ class Client extends JFrame {
 
 	}
 
+	/**
+	 * removes channel windows when a disconnect is detect.
+	 * (there's no reconnecting, so this is currently pointelss)
+	 */
 	private void disconnected() {
 
 		//when it is disconnected, remove allll of the windows..
@@ -216,7 +246,10 @@ class Client extends JFrame {
 		//and then the channel window will close...
 		} else if ( cmd.equals("PART") ) {
 	
-			//there's channel specified in the command.
+			//
+			//THIS IS NOT RFC complaint
+			//channel names can start with #,!,+,&.  
+			//Not 100% sure how to handle this properly...
 			if ( cmd.numArgs() > 0 && cmd.getArg(0).charAt(0) == '#' ) {
 
 				irc.part(cmd.getArg(0), cmd.getFinal(1));
@@ -230,6 +263,9 @@ class Client extends JFrame {
 		} else if ( cmd.equals("CLOSE" ) ) {
 
 			if ( src.getType() == ChatWindow.Type.QUERY ) remove(src);
+
+			if ( src.getType() == ChatWindow.Type.CHANNEL ) irc.part(src.getName());
+
 
 		} else if ( cmd.equals("QUIT") ) {
 			irc.quit( cmd.getFinal(0) );
@@ -270,7 +306,6 @@ class Client extends JFrame {
 
 			src.put( new QueryMessage( MessageType.NOTICE, target, message, QueryMessage.Dir.OUTGOING) );
 		
-			///fss why am I doin this.
 		} else if ( cmd.equals("ME" ) ) {
 
 			// /me arg1"
@@ -284,10 +319,11 @@ class Client extends JFrame {
 			src.put( 
 				new QueryMessage( MessageType.ACTION, irc.nick(), cmd.getFinal(0), QueryMessage.Dir.OUTGOING)
 			);
-		} else if ( cmd.equals("QUIT") ) {
-				reconnect = false;
+
+		//unrecognized commands go to the server.
 		} else {
-			irc.send(cmd.cmd + " " + cmd.getFinal(0));
+			//not a great way
+			irc.send(cmd.cmd, cmd.getFinal(0));
 		}
 	}
 
@@ -495,7 +531,7 @@ class Client extends JFrame {
 					);
 
 					debug.put( (new PaintableMessage()).append(msg.getRaw(), Color.red));
-	
+
 					if (msg.getType() == MessageType.DISCONNECT)
 						disconnected();
 
