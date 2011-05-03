@@ -91,7 +91,7 @@ class Client extends JFrame {
 			}
 		});
 
-		status.put("Creating a new IRC connection...");
+		status.put("Connecting...");
 
 		//create a new IRC connection
 		irc = new Connection("irc.jaundies.com", 6667, "fubar");
@@ -102,65 +102,22 @@ class Client extends JFrame {
 
 		/**
 		 * IMPORTANT: Sync is registered after messageHandler.
-		 * This class implicitly relies on the order guarantees by
+		 * This class implicitly relies on the order guaranteed by
 		 * Connection.registerMessageHandler()
 		 *
 		 * @see Connection.registerMessageHandler() for more information
 		 */
 		sync = new client.SyncManager(irc);
 
-		int interval = 1;
-		final int max = 300;
-
-
-		while (reconnect) {
-
-			if ( irc.getState() != Connection.State.DISCONNECTED )
-				waitWhileConnected();
-
-			else {
-				try {
-					irc.connect();
-				} catch (Exception e) {
-
-					printException(e);
-
-					try {
-						Thread.sleep(interval*1000);
-					} catch (InterruptedException err) {
-						printException(err);
-					}
-
-					//double interval until success.
-					if (interval < max) 
-						interval *= 2;
-
-					continue;
-				}
-
-				interval = 1;
-				irc.join( CHAN );
-			}
-		}
-
-		System.exit(1);
-
-	}
-
-	/**
-	 * Handle reconnecting - 
-	 * wait while the IRC thread is connected...
-	 */
-	private void waitWhileConnected() {
-		while (irc.getState() != Connection.State.DISCONNECTED) synchronized(irc) {
 			try {
-				irc.wait();
 
-				disconnected();
-			} catch (InterruptedException e) {
+				irc.connect();
+			} catch (ConnectionException e) {
 				printException(e);
 			}
-		}
+
+			irc.join( CHAN );
+
 	}
 
 
@@ -538,6 +495,10 @@ class Client extends JFrame {
 					);
 
 					debug.put( (new PaintableMessage()).append(msg.getRaw(), Color.red));
+	
+					if (msg.getType() == MessageType.DISCONNECT)
+						disconnected();
+
 					break;
 
 				case LOGIN:
@@ -551,6 +512,8 @@ class Client extends JFrame {
 				       status.put( new QueryMessage(MessageType.NOTICE, msg.getSource().toString(), buf.toString(), QueryMessage.Dir.INCOMING ) );
 
 				       break;
+
+
 
 				default:
 					debug.put( msg.getRaw() );	

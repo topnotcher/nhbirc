@@ -659,7 +659,7 @@ public class Connection {
 			public void run() {
 			
 				if ( state == State.DISCONNECTED ) 
-					throw new RuntimeException("Trying to loop over non connection???");
+					throw new ConnectionStateException("Trying to run wihout being connected???");
 	
 				while ( state != State.DISCONNECTED ) try {	
 					
@@ -675,9 +675,8 @@ public class Connection {
 					 */
 					recv( in.readLine() );
 		
-				} catch (Exception e) {
-					//@TODO
-					e.printStackTrace();
+				} catch (java.io.IOException e) {
+					close();
 				}
 			}
 		};
@@ -690,16 +689,14 @@ public class Connection {
 			public void run() {
 			
 				if ( state == State.DISCONNECTED ) 
-					throw new RuntimeException("Trying to loop over non connection???");
+					throw new ConnectionStateException("Trying to run wihout being connected???");
+
 	
 				while( state != State.DISCONNECTED ) try {	
 
 					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
 		
-				} catch (Exception e) {
-
-					//@TODO
-					e.printStackTrace();
+				} catch (InterruptedException e) {
 				}
 			}
 		};
@@ -708,18 +705,31 @@ public class Connection {
 
 			if (msg == null) return;
 
+			//connection could have died while waiting for something
+			//to be put onto the outgoing queue.
+			if (state == State.DISCONNECTED) return;
+
 			last_tx = System.currentTimeMillis();
 
-			out.print( msg.getMessage() );
-			out.print( "\r\n" );
-			out.flush();
+			try { 
+				out.print( msg.getMessage() );
+				out.print( "\r\n" );
+				out.flush();
+			} catch (Exception e) {
+				close();
+			}
 		}
 
 		/**
 		 * Receives/buffers any data on the channel
 		 */
 		private void recv(String msg) {
+
 			if (msg == null) return;
+
+			//in case the connection died/was killed while waiting to read 
+			//(which doesn't make sense...)
+			if (state == State.DISCONNECTED) return;
 
 			last_tx = System.currentTimeMillis();
 
@@ -729,6 +739,8 @@ public class Connection {
 		public void close() {
 			//stop everything from looping
 			setState(State.DISCONNECTED);
+			
+			sendQ.clear();
 
 			try {
 				conn.close();
