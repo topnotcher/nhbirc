@@ -53,7 +53,10 @@ public class Channel implements Iterable<User> {
 		channels.put(name,this);
 	}
 
-
+	/**
+	 * Getter for the channel registry.
+	 * package-private: should only be called via SyncManager
+	 */
 	synchronized static Channel get(String name) {
 		Channel ret = channels.get(name);
 
@@ -64,15 +67,24 @@ public class Channel implements Iterable<User> {
 	}
 
 	/**
+	 * Get the channel's name.
+	 *
 	 * Note there is no setter for name:
 	 * It must be set on instantiation, 
 	 * and cannot be changed.
+	 *
+	 * @return the channel's name.
 	 */
-
 	public String getName() {
 		return name;
 	}
 
+
+	/**
+	 * Get the channel's topic, if it is synched.
+	 *
+	 * @return the topic if it is synched, or "" if it is not.
+	 */
 	public String getTopic() {
 
 		if (topic == null) return "";
@@ -84,12 +96,21 @@ public class Channel implements Iterable<User> {
 	/**
 	 * Intended to be called by SyncManager when the topic is
 	 * received/changed.
+	 *
+	 * @string topic the new topic.
 	 */
-	public void setTopic(String topic) {
+	void setTopic(String topic) {
 		this.topic = topic;
 		topicChanged();
 	}
 
+	/**
+	 * Get a channel user given a user.
+	 *
+	 * @param u a User
+	 *
+	 * @return a ChannelUser encapsulating u, or null if there isn't one on this channel.
+	 */
 	private ChannelUser getChannelUser(User u) {
 
 		//if the user is on the channel, return the user...
@@ -102,7 +123,7 @@ public class Channel implements Iterable<User> {
 	 * Handle the dirty work of adding a user to a channel...
 	 * This is for internal use: it Does*Not*Fire*usersChanged*
 	 */
-	public synchronized void addUserToList(User user) {
+	synchronized void addUserToList(User user) {
 		
 
 		if ( getChannelUser(user) != null )
@@ -112,35 +133,10 @@ public class Channel implements Iterable<User> {
 		users.add( new ChannelUser(user) );
 	}
 
-
-
-	//Like an addAll, but makes sure a user isn't in teh channel...
-	public void addUsers(List<User> list) {
-
-		//we need to do a contains....
-		for (User user : list) 
-			addUserToList(user);
-
-		//yeah, this is efficient :p
-//		util.ListSorter.sort( users );
-
-		//DOES NOT fire usersChanged() here
-		//during a bulk insert, this class
-		//expects the context calling addUsers()
-		//to fire an update when it is done adding
-		//rationale: IRC messages are a max of 512 chars,
-		//so a NAMES reply might come in multiple messages,
-		//followed by a RPL_ENDOFNAMES.  The calling context
-		//should trigger a usersChanged() upon receiving the
-		//RPL_ENDOFNAMES
-	}
-
 	//Add a single user.
 	public void addUser(User u) {
 
 		addUserToList( u );
-
-//		util.ListSorter.sort(users);
 
 		usersChanged();
 	}
@@ -158,21 +154,27 @@ public class Channel implements Iterable<User> {
 		}
 	}
 
-	public synchronized void destroy() {
+	/**
+	 * Self-destruct when something
+	 * decides this channel is no longer needed.
+	 *
+	 * In theory SyncManager makes reaonable decisions regarding destroying
+	 * channel objects.  It is potentially possible for a channel to be destroyed()
+	 * while the chanel window remains open, which would cause the window to be 
+	 * "disconnected" from the channel's state. All of the client UI code needs some rethinking...
+	 */
+	synchronized void destroy() {
 		channels.remove(name);
 
 		for (User u : this) 
 			u.removeChannel(this);
 
-		users = null;
-		subs = null;
-
-		System.out.println( this.name + " self-destruct");
-
-		name = null;
+		users.clear();
+		subs.clear();
+		name = "";
 	}
 
-	public synchronized void setUserMode(User user, ChannelUser.Mode mode) {
+	synchronized void setUserMode(User user, ChannelUser.Mode mode) {
 		ChannelUser cuser = getChannelUser(user);
 
 		///@TODO

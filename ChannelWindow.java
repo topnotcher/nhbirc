@@ -14,10 +14,24 @@ import java.awt.event.KeyEvent;
 import client.*;
 
 
+/**
+ * ChannelWindow differs from GenericChatWindow in that it
+ * requires a nick list to be displayed. It uses the same console, but 
+ * it's content is stored in a split pane.
+ */
 public class ChannelWindow extends ChatWindowAbstract {
 	
-	private client.Channel channel;
+	/**
+	 * List model to abstract getting the user
+	 * list from the channel and into the JList
+	 */
 	private ChannelListModel list;
+
+	private Channel channel;
+
+	/**
+	 * Dislpays the topic...
+	 */
 	private JTextField topic;
 
 	public ChannelWindow(String channel_name, client.SyncManager sync) {
@@ -29,11 +43,12 @@ public class ChannelWindow extends ChatWindowAbstract {
 		//JOIN for the channel, it will pull back the same channel instance.
 		//This means that the order in which the message handlers are run is irrelevant
 		channel = sync.getChannel(getName());
-
-		list = new ChannelListModel();	
-
+		
 		channel.addChannelListener( channelListener );
 
+		list = new ChannelListModel();	
+	
+		//layout for the ChannelWindowAbstract
 		setLayout(new BorderLayout());
 
 		//a channel window is a split pane...
@@ -46,16 +61,24 @@ public class ChannelWindow extends ChatWindowAbstract {
 		
 		JList userlist = new JList(list);
 		
+		/**
+		 * @TODO don't hardcode this...
+		 */
 		userlist.setBackground(Color.black);
 		userlist.setForeground(Color.white);
 
+		/**
+		 * @TODO don't hardcode this either.
+		 */
 		userlist.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 13));
 
+	
+		/**
+		 * Make the user list scrollable.
+		 */
 		JScrollPane scroll = new JScrollPane(userlist);
 		scroll.setMinimumSize( new Dimension(200,100) );
-		chan.setRightComponent( 
-			scroll
-		);
+		chan.setRightComponent( scroll );
 
 
 		//favor the left side???
@@ -66,11 +89,6 @@ public class ChannelWindow extends ChatWindowAbstract {
 		//@TODO topic
 		add(topic = new JTextField(channel.getTopic()), BorderLayout.NORTH);
 
-		//FINALLY
-	}
-
-	protected void finalize() {
-		channel.removeChannelListener( channelListener );
 	}
 
 	private class ChannelListModel extends AbstractListModel {
@@ -93,7 +111,6 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 		public void usersChanged(Channel c) {
 			list.update();
-
 		}
 	};
 }

@@ -1,7 +1,16 @@
 package client;
 
+/**
+ * A user is just a user...
+ *
+ * A user on a channel can have modes (well the modes are really the channel's)
+ * This object ties a user to a set of modes.
+ */
 public class ChannelUser implements Comparable<ChannelUser> {
 
+	/**
+	 * Mapping between mode chars, access level.
+	 */
 	public enum Mode {
 
 		FOUNDER	(0,'~'),

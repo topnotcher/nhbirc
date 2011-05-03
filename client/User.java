@@ -5,14 +5,22 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class User implements Comparable<User>, Iterable<Channel> {
+/**
+ * NOTE: In general, references to this object shouldn't be kept;
+ * they should be obtained through SyncManager.getUser() each time they are needed.
+ */
+class User implements Comparable<User>, Iterable<Channel> {
 
 	private String nick;
+
 	private String host = null;
+
 	private String user;
 
+	//list of joined channels...(not currently used)
 	private List<Channel> channels;
 
+	//registry of all user objects.
 	private static HashMap<String,User> users = new HashMap<String,User>();
 
 	/**
@@ -37,10 +45,13 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		return ret;
 	}
 	
+	/**
+	 * Something decided this user doesn't need to be 
+	 * synched anymore.
+	 */
 	synchronized void suicide() {
 		users.remove(nick);
-		nick = null;
-		channels = null;
+		channels.clear();
 	}
 
 	public String getNick() {

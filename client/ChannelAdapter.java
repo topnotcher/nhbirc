@@ -1,7 +1,6 @@
 package client;
 
-public class ChannelAdapter implements ChannelListener {
-
+abstract public class ChannelAdapter implements ChannelListener {
 
 	public void topicChanged(Channel c) {}
 

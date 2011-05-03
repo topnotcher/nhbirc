@@ -157,4 +157,5 @@ public class SyncManager implements MessageHandler {
 	public Channel getChannel(String name) {
 		return Channel.get(name);
 	}
+
 }
