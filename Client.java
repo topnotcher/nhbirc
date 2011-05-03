@@ -48,7 +48,7 @@ class Client extends JFrame {
 	 * Default channel to join.
 	 * @TODO connection dialog.
 	 */
-	private final String CHAN = "#foo";
+	private final String CHAN = "#fubar";
 
 
 	private volatile boolean reconnect = true;
@@ -152,7 +152,7 @@ class Client extends JFrame {
 	 * wait while the IRC thread is connected...
 	 */
 	private void waitWhileConnected() {
-		synchronized(irc) {
+		while (irc.getState() != Connection.State.DISCONNECTED) synchronized(irc) {
 			try {
 				irc.wait();
 
@@ -169,6 +169,7 @@ class Client extends JFrame {
 
 		for (StackTraceElement st : e.getStackTrace())
 			debug.put( new PaintableString(st.toString(), Color.red ) );
+
 	}
 
 	private void disconnected() {
@@ -202,13 +203,15 @@ class Client extends JFrame {
 	 *
 	 * @param c ChatWindow to remove
 	 */
-	private synchronized void remove(ChatWindow c) {
+	private void remove(ChatWindow c) {
 		
 		//remove the tab.
 		tabs.remove(c.getContentPane());
 
-		//forgot about the chatwindow
-		windows.remove(c);
+		synchronized(windows) {
+			//forget about the chatwindow
+			windows.remove(c);
+		}
 
 		//and ignore its commands
 		c.removeActionListener( commandListener );
@@ -220,7 +223,7 @@ class Client extends JFrame {
 	 *
 	 * @param c ChatWindow to add
 	 */
-	private synchronized void add(ChatWindow c) {
+	private void add(ChatWindow c) {
 
 		//listen to commands from the window
 		c.addActionListener( commandListener );
@@ -230,7 +233,9 @@ class Client extends JFrame {
 		tabs.addTab(c.getName(), c.getContentPane());
 
 		//add it to the list of chatwindows
-		windows.add(c);
+		synchronized(windows) {
+			windows.add(c);
+		}
 
 		//and select the new tab.
 		tabs.setSelectedComponent( c.getContentPane() );
