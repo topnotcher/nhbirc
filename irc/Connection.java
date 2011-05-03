@@ -127,16 +127,25 @@ public class Connection {
 		return this;
 	}
 
-	//attempt to connect
-	public void connect() throws java.io.IOException {
 
-		//connect
-		//(blocks until connected)
-		conn = new IrcConnection();
+	/**
+	 * Attempt to connect to the given IRC server
+	 * with the given parameters
+	 *
+	 * @TODO wrap IOException
+	 */
+	public void connect() throws ConnectionException {
 
+		try {
+			//connect
+			//(blocks until connected)
+			conn = new IrcConnection();
+		} catch (java.io.IOException e) {
+			throw new ConnectionException(e);
+		}
 
 		if ( state != State.CONNECTED )
-			throw new RuntimeException("Connection is not connected!");
+			throw new ConnectionException("Connection is not connected!");
 
 
 		//handle messages in a separate thread
@@ -176,7 +185,7 @@ public class Connection {
 		 */
 	
 		if ( state != state.REGISTERED )
-			throw new RuntimeException("REGISTER timeout after 30 seconds");
+			throw new ConnectionException("REGISTER timeout after 30 seconds");
 
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
@@ -235,8 +244,16 @@ public class Connection {
 		part(chan,null);
 	}
 
-	public void join(String chan) {
-		send("JOIN", chan);
+	public void join(String ... chans) {
+
+		if (chans.length == 0)
+			throw new IllegalArgumentException("Must pass a channel to join!");
+
+		StringBuilder buf = new StringBuilder(chans[0]);	
+
+		for ( int i = 1; i < chans.length; buf.append(',').append(chans[i]), ++i);
+
+		send("JOIN",buf.toString());
 	}
 
 	public void msg(String target, String msg) {
@@ -294,9 +311,6 @@ public class Connection {
 	}
 
 
-	/**
-	 * NOTE: THIS CANNOT BE USED FOR REGISTERING.
-	 */
 	public void send(String[] args, Priority p) {
 
 		if (args.length == 0) return;
@@ -576,7 +590,7 @@ public class Connection {
 				if ( System.currentTimeMillis() - last_rx > MAX_IDLE ) 
 					conn.close();
 				
-				//keep alive.
+				//active keep-alives.
 				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
 					ping();
 			}
@@ -612,7 +626,9 @@ public class Connection {
 		private static final int MSG_SIZE = 512;
 
 		private Socket conn = null;
+
 		private PrintWriter out;
+
 		private BufferedReader in;
 
 		private IrcConnection() throws java.io.IOException {
@@ -692,6 +708,8 @@ public class Connection {
 
 			if (msg == null) return;
 
+			last_tx = System.currentTimeMillis();
+
 			out.print( msg.getMessage() );
 			out.print( "\r\n" );
 			out.flush();
@@ -702,6 +720,8 @@ public class Connection {
 		 */
 		private void recv(String msg) {
 			if (msg == null) return;
+
+			last_tx = System.currentTimeMillis();
 
 			handleRaw(msg);
 		}
