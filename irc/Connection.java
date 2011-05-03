@@ -676,7 +676,8 @@ public class Connection {
 					recv( in.readLine() );
 		
 				} catch (java.io.IOException e) {
-					close();
+					e.printStackTrace();
+//					close();
 				}
 			}
 		};
@@ -716,7 +717,8 @@ public class Connection {
 				out.print( "\r\n" );
 				out.flush();
 			} catch (Exception e) {
-				close();
+				e.printStackTrace();
+			//	close();
 			}
 		}
 
