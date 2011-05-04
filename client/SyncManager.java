@@ -108,10 +108,10 @@ public class SyncManager implements MessageHandler {
 		}
 
 		//NAMES fubar = #channel :list
-		//check # of arguments, and verify that there is an =, which means this is
-		//a names list for a channel == next argument. 
-		if ( m.numArgs() < 5 || m.get(2).charAt(0) == '*' )  return;
-		
+		//check # of arguments, and verify that there is not a * in the channel arg, which means this is
+		//a names list "without a channel"
+		if ( m.numArgs() < 5 || m.get(3).charAt(0) == '*' )  return;
+	
 		Channel c = getChannel( m.getArg(3) );
 
 		StringTokenizer st = new StringTokenizer( m.getMessage(), " ");
