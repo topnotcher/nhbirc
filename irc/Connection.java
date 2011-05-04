@@ -18,15 +18,32 @@ import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 /**
+ * Connects to, registers with an IRC server and dispatches events.
+ *
+ *
  * @TODO need to make the exception handling better
  * This might mean a way to register exception handlers or something, 
  * as currently most of the exceptions will occur in different threads.
  */
 public class Connection {
 
+	/**
+	 * State of the connection
+	 */
 	public static enum State {
+		/**
+		 * Completely not connected
+		 */
 		DISCONNECTED(0),
+
+		/**
+		 * TCP Connection complete, registration phase incomplete.
+		 */
 		CONNECTED(1),
+
+		/**
+		 * Connection is usable.
+		 */
 		REGISTERED(2);
 
 		private int code;
@@ -36,10 +53,20 @@ public class Connection {
 		}
 	}
 
-	//minimum time between pings = 30 seconds...
+	/**
+	 * Minimm time in between pings. (milliseconds)
+	 * If the connection is dropped, a ping will be sent to the server once
+	 * every PING_TIMEOUT milliseconds.
+	 */
 	private static final int PING_TIMEOUT = 30000;
 
-	//max idle of 1.5 minutes...
+	/**
+	 * Maximum idle time of the connection.
+	 *
+	 * If there is no activity fromt he server within this time, the
+	 * connection will be closed.  The server will be pinged if it there is no
+	 * activity for half this time. (see PING_TIMEOUT)
+	 */
 	private static final int MAX_IDLE = 1000*60*3;
 
 
@@ -53,42 +80,107 @@ public class Connection {
 	 */
 	private int port;
 
-	//nickname, username, realname.
-	private String nick,user,real,pass;
+	/**
+	 * Current nickname of the registered connection.
+	 */
+	private String nick;
+	
+	/**
+	 * The user/ident.
+	 * @TODO get this from the server? The sever doesn't necessarily accept what we give it (identd, ~)
+	 */
+	private String user;
+	
+	/**
+	 * The realname the connection was registered with.
+	 */
+	
+	private String real;
+	
+	/**
+	 * Password to use when registering.
+	 */
+	private String pass = null;
 
-	//queue of messages to send.
+	/**
+	 * Priority Queue of outgoing messages.
+	 */
 	private BlockingQueue<OutgoingMessage> sendQ;
 	
-	//queue of messages received.
+	/**
+	 * Priority Queue of Incoming messages.
+	 */
 	private BlockingQueue<Message> recvQ;
 
-	//Irc connection
+	/**
+	 * The object that handles the actual socket i/o
+	 */
 	private IrcConnection conn;
 
-	//message handlers (subscribers)
+	/**
+	 * Subscribed message handlers
+	 */
 	private List<IrcMessageSubscription> handlers = new util.LinkedList<IrcMessageSubscription>();
 	
-	//whether or not registration phase of connection is complete
-	//(no non-registration commands can be sent until this is done)
+	/**
+	 * Tracks the state of the connection.
+	 * @see Connection.State
+	 */
 	private State state;
 
-	//how the server identifies itself in the 001
+	/**
+	 * The hostname the server gave as the origin in the 001 reply.
+	 */
 	private String hostname = "none";
 
+	/**
+	 * The time (unix epoch) in milliseconds of the last message sent to the server.
+	 */
 	private long last_tx = 0;
+
+	/**
+	 * The time (unix epoch) in milliseconds of the last message received from to the server.
+	 */
 
 	private long last_rx = 0;
 
+	/**
+	 * The time (unix epoch) in milliseconds of the last ping sent to the server.
+	 */
 	private long last_ping = 0;
 
+	/**
+	 * Create a Connection with a default ident and realname.
+	 *
+	 * @param host the hostname/Ip of the server.
+	 * @param port the tcp port
+	 * @param nick the nickname, realname, ident to use (copied to all 3)
+	 */
 	public Connection(String host, int port, String nick) {
 		this(host,port,nick,nick);
 	}
 
+	/**
+	 * Create a Connection with a nickname and username, but default realname
+	 *
+	 * @param host the hostname/Ip of the server.
+	 * @param port the tcp port
+	 * @param nick the nickname, realname, to use
+	 * @param user ident/user to use.
+	 */
 	public Connection(String host, int port, String nick, String user) {
 		this(host,port,nick,user,nick);
 	}
 
+	/**
+	 * Create a Connection with a nickname and username, but default realname
+	 *
+	 * @param host the hostname/Ip of the server.
+	 * @param port the tcp port
+	 * @param nick the nickname to use
+	 * @param user the ident/user to use.
+	 * @param real the realname to use.
+	 */
 	public Connection(String host, int port, String nick, String user, String real) {
 		this.user = user;
 		this.host = host;
@@ -100,6 +192,11 @@ public class Connection {
 		state = State.DISCONNECTED;
 	}
 	
+	/**
+	 * Set the password for the connection
+	 *
+	 * @param pass the password to use during registration
+	 */
 	public void setPass(String pass) {
 		this.pass = pass;
 	}
@@ -232,6 +329,12 @@ public class Connection {
 	}
 
 
+	/**
+	 * The following are helper methods for IRC commands.
+	 * Please read the relevant RFC for documentation. 
+	 * DOcumenting IRC commands is beyind the scope of these comments.
+	 * Kthanxbai.
+	 */
 
 	public void part(String chan, String msg) {
 		if (msg != null)
@@ -302,6 +405,10 @@ public class Connection {
 		send(Priority.LOW, "QUIT", msg);
 	}
 
+	/**
+	 * End IRC helper methods.
+	 */
+
 	//handle a raw received message
 	private void handleRaw(String raw) {
 		if (raw.length() == 0) return;
@@ -316,6 +423,9 @@ public class Connection {
 
 	}
 
+	/**
+	 * Below... about 50 varieties of send....
+	 */
 
 	public void send(String[] args, Priority p) {
 
@@ -422,6 +532,11 @@ public class Connection {
 			return this;
 		}
 
+		/**
+		 * Add a command. THe command and the code are an OR match. Everything else is and.
+		 * 
+		 * @return provides a fluent interface.
+		 */
 		public IrcMessageSubscription addCommand(String cmd) {
 			
 			if ( cmds == null ) 
@@ -432,6 +547,9 @@ public class Connection {
 			return this;
 		}
 
+		/**
+		 * Add a regex to match on the 'message' part.
+		 */
 		public IrcMessageSubscription addPattern(Pattern p) {
 			
 			if ( patterns == null )
@@ -442,6 +560,9 @@ public class Connection {
 			return this;
 		}
 
+		/**
+		 * Register this subscription
+		 */
 		private IrcMessageSubscription register() {
 			synchronized(handlers) {
 				handlers.add(this);
@@ -449,12 +570,18 @@ public class Connection {
 			return this;
 		}
 
+		/**
+		 * kill this subscription
+		 */
 		public void unregister() {
 			synchronized(handlers) {
 				handlers.remove(this);
 			}
 		}
 
+		/**
+		 * add an "or" condition. Really just creates a new subscription.
+		 */
 		public IrcMessageSubscription or() {
 			return (new IrcMessageSubscription(this.handler)).register();
 		}

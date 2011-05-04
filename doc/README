@@ -1,6 +1,13 @@
 -----------  Running  -------------
+(Not sure why you couldn't get a GUI up in the prototype, 
+but in all honesty I started that Tuesday night... It's been completely reworked, and I was able to stay
+on freenode for 24 hours, so it should be working now.)
 
-Via jar:
+In order to organize the ... large number ... of source files, I used packages  (without FQDNS). 
+When compiling, the classpath needs to be set to the top level directory of the program.  The Makefile
+should accomplish this ends on london. I don't use windows/eclipse, so you're on your own there...
+
+To simplify the process of running, I provided a jar...
 	Linux: java -jar client.jar
 	Windows: Should be able to double click.
 
@@ -11,6 +18,53 @@ Compiling:
 		You're on your own...
 		The classpath argument must be set to the top level source directory when compiling
 
+The program should automatically connect to several channels on irc.freenode.net.  
+The currently supported commands are documented below. This assumes some familiarity with IRC.
+
+
+------------ API DOC  -------------
+See doc/html/index.html
+
+I ran javadoc with the -private flag, so all methods should be listed, though I did not heavily document every method.
+
+The basic organization is as follows:
+
+Client.java: handles all client interaction
+
+client package: provides services useful for an IRC client, but not necessarily part of a single client, or IRC itself.
+	- Currently used for channel synching. 
+		- This primarily comes into play with a NICK or QUIT message. IRCds send 1 nick/quit for every user in a channel with you;
+		  In order to propagate this message to all relevant windows, Client.java relies on the SyncManager.
+
+util package:
+	LinkedList, "FixedStack", PriorityQueue, ListSorter.
+
+irc package: Basic support for the IRC protocol.
+	- Basic parsing of IRC messages.
+	- Event system to handle dispatching of relevant messages.
+	- Connection.java: Several nested class, contains all of the logic.
+	- MessageCode.java: enum for several IRC numerics.
+	- MessageType.java: enum to abstract past the command part of an IRC message (e.g. to group them together, etc)
+
+The publisher/subscriber model used in the Connection class deserves a little explanation too:
+
+irc.addMessageHandler(handler) provides a fluent interface to match on the type, code, command, or regex match on the message.
+
+Since the code/command part of a message are mutually exclusive, the matching of these two is handled as an OR.
+	
+	irc.addMessageHandler(handler).addCode(MessageCode.RPL_NAMEREPLY).addCommand("ERROR") will match name replies OR ERROR commands (disconnect)
+
+addType() and addPattern() must always match if a pattern/type has been added. Adding more than one of a type/command/code/pattern matches as an OR.
+
+	irc.addMessageHandler(handler).addType(MessageType.PING).addType(MessageType.ERROR) will match the error type or the PING type.
+
+	irc.addMessageHandler(handler).addType(MessageType.PING).addCommand("ERROR") will match type PING and command ERROR (e.g. nothing because ping itself is the command)
+	
+	irc.addMessageHandler(handler).addType(MessageType.PING).or().addCommand("ERROR") will match the ERROR command or the PING type...
+
+Future additions might include matching on the message "origin" or "target".
+
+The interface also has support for adding 
 
 ------------ Commands -------------
 

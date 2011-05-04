@@ -1,3 +1,8 @@
+/**
+ * Greg Bowser
+ * CSC212, Final Program
+ * 4 May 2011
+ */
 
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
@@ -10,7 +15,11 @@ import irc.*;
 
 import java.util.List;
 
-
+/**
+ * The main "client class". Organizes the GUI and passes messages to the appropriate GUI components.
+ *
+ * @TODO this class quickly outgrew its design. Needs refactoring.
+ */
 class Client {
 
 	/**
@@ -44,7 +53,7 @@ class Client {
 	private client.SyncManager sync;
 
 	/**
-	 * Default channel to join.
+	 * Default channel to join. (RFC2812 provides for comma-separated channels)
 	 * @TODO connection dialog.
 	 */
 	private final String CHAN = "#snort,#putty,#lighttpd,#grsecurity,#linux,#gentoo";
@@ -82,6 +91,9 @@ class Client {
 	}
 
 
+	/**
+	 * Creates an IRC Connection object and coonnects
+	 */
 	private void connect() {
 		status.put("Connecting...");
 
@@ -228,6 +240,8 @@ class Client {
 				irc.part(src.getName() , cmd.getFinal(0) );
 			}
 			//otherwise do nothing.
+			//
+		//close the current window (if it isn't special)
 		} else if ( cmd.equals("CLOSE" ) ) {
 
 			if ( src.getType() == ChatWindow.Type.QUERY ) remove(src);
@@ -380,6 +394,9 @@ class Client {
 			}
 		}
 
+		/**
+		 * separate method to handle exceptions
+		 */
 		private void handleEvent(MessageEvent e) {
 
 			Message msg = e.getMessage();
