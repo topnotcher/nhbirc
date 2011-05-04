@@ -47,7 +47,7 @@ class Client {
 	 * Default channel to join.
 	 * @TODO connection dialog.
 	 */
-	private final String CHAN = "#fubar";
+	private final String CHAN = "#snort,#putty,#lighttpd,#grsecurity,#linux,#gentoo";
 
 
 	private volatile boolean reconnect = true;
@@ -86,7 +86,7 @@ class Client {
 		status.put("Connecting...");
 
 		//create a new IRC connection
-		irc = new Connection("irc.jaundies.com", 6667, "fubar");
+		irc = new Connection("irc.freenode.net", 6667, "foooobar");
 	
 
 		//messageHandler receives *all* messages.
