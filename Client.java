@@ -56,7 +56,7 @@ class Client {
 	 * Default channel to join. (RFC2812 provides for comma-separated channels)
 	 * @TODO connection dialog.
 	 */
-	private final String CHAN = "#snort,#putty,#lighttpd,#grsecurity,#linux,#gentoo";
+	private final String CHAN = "#fielty";
 
 
 	private volatile boolean reconnect = true;
@@ -98,7 +98,7 @@ class Client {
 		status.put("Connecting...");
 
 		//create a new IRC connection
-		irc = new Connection("irc.freenode.net", 6667, "foooobar");
+		irc = new Connection("sphinx.jaundies.com", 6667, "foooobar");
 	
 
 		//messageHandler receives *all* messages.
@@ -305,7 +305,7 @@ class Client {
 		//unrecognized commands go to the server.
 		} else {
 			//not a great way
-			irc.send(cmd.cmd, cmd.getFinal(0));
+			irc.send(msg);
 		}
 	}
 
@@ -343,6 +343,10 @@ class Client {
 				msg = msg.substring( sp + 1 );
 				args = msg.split(" ");
 			}
+		}
+
+		public String[] getArgs() {
+			return args;
 		}
 
 		private int numArgs() {
