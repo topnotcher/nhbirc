@@ -266,6 +266,7 @@ class Client {
 
 				//we can't just pop a new window for messagine a
 				//channel that we haven't joined...
+				//note: this does not handle any of those other channel types >:o
 				if (target.charAt(0) == '#') return;
 
 				//otherwise, it is a PM....
