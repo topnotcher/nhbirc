@@ -306,7 +306,7 @@ class Client {
 		//unrecognized commands go to the server.
 		} else {
 			//not a great way
-			irc.send(msg);
+			irc.send(cmd.getRaw());
 		}
 	}
 
@@ -348,6 +348,16 @@ class Client {
 
 		public String[] getArgs() {
 			return args;
+		
+		}
+
+		public String getRaw() {
+			String buf = cmd + " ";
+
+			for ( int i = 0; i < args.length; ++i )
+				buf += args[i] + ((i == args.length-1) ? "" : " ");
+
+			return buf;
 		}
 
 		private int numArgs() {
