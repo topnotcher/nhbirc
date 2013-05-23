@@ -392,6 +392,14 @@ public class Connection {
 		send(p,"NOTICE" ,target, msg);
 	}
 
+	public void kick(String chan, String user, String msg) {
+		send(Priority.MEDIUM,"KICK", chan, user, msg);
+	}
+
+	public void kick(String chan, String user, String msg, Priority p) {
+		send(p,"KICK", chan, user, msg);
+
+	}
 
 	public String nick() {
 		return this.nick;
