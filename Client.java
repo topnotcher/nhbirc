@@ -104,6 +104,33 @@ class Client {
 		//messageHandler receives *all* messages.
 		irc.addMessageHandler( messageHandler );
 
+		irc.addMessageHandler(new MessageHandler() {
+			public void handle(MessageEvent e) {
+				String chan = e.getMessage().getTarget().getChannel();
+				String nick = e.getMessage().getSource().getNick();
+				String msg = e.getMessage().getMessage();
+
+				int idx = msg.indexOf(" ");
+
+				if ( idx > 0 )
+					nick = msg.substring(idx+1);
+
+				e.getSource().action(chan, "hands " + nick + " a cold one!");
+
+			}
+		}).addType( MessageType.QUERY )
+		 .addPattern( java.util.regex.Pattern.compile("!beer.*") );
+
+		irc.addMessageHandler(new MessageHandler() {
+			public void handle(MessageEvent e) {
+				String chan = e.getMessage().getTarget().getChannel();
+				irc.kick(chan,"Sanction", "hahahaha");
+				irc.msg(chan, "Fucking hilarious! Beers all around!!!");
+			}
+		}).addType( MessageType.QUERY )
+		 .addPattern( java.util.regex.Pattern.compile("!lolz") );
+
+
 		/**
 		 * IMPORTANT: Sync is registered after messageHandler.
 		 * This class implicitly relies on the order guaranteed by
