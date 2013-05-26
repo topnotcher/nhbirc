@@ -1,7 +1,8 @@
 
-package client;
+package com.coldsteelstudios.irc.client;
 
 import java.util.List;
+import java.util.LinkedList;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -28,7 +29,7 @@ public class User implements Comparable<User>, Iterable<Channel> {
 	 */
 	private User(String nick) {
 		this.nick = nick;
-		channels = new util.LinkedList<Channel>();
+		channels = new LinkedList<Channel>();
 
 		users.put(nick,this);
 	}

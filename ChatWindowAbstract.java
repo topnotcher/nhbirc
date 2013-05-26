@@ -1,5 +1,6 @@
 import javax.swing.JPanel;
 import java.util.List;
+import java.util.LinkedList;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
@@ -79,7 +80,7 @@ abstract class ChatWindowAbstract extends JPanel implements ActionListener, Chat
 
 		//lazily instantiate list. 
 		if (listeners == null) 
-			listeners = new util.LinkedList<ActionListener>();
+			listeners = new LinkedList<ActionListener>();
 	
 
 		listeners.add(l);

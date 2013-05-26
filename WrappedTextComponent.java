@@ -5,11 +5,12 @@ import java.awt.FontMetrics;
 import javax.swing.JComponent;
 
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.StringTokenizer;
 import java.util.NoSuchElementException;
 
-import util.FixedStack;
+import com.coldsteelstudios.util.FixedStack;
 
 /**
  * A component that displays word-wrapped lines of text.
@@ -95,7 +96,7 @@ class WrappedTextComponent extends JComponent {
 		final int indentsize = METRICS.stringWidth(" ")*indent;
 
 		//hold the output in this...
-		List<Integer> rows = new util.LinkedList<Integer>();
+		List<Integer> rows = new LinkedList<Integer>();
 
 		//number of chars for current row.
 		int row = 0;

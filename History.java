@@ -1,6 +1,6 @@
 import java.util.ListIterator;
 import java.util.List;
-import util.FixedStack;
+import com.coldsteelstudios.util.FixedStack;
 
 /**
  * Holds a fixed number of commands in the "history buffer"

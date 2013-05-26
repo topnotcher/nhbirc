@@ -1,3 +1,5 @@
+import com.coldsteelstudios.irc.*;
+
 import java.awt.Color;
 
 /**
@@ -15,9 +17,9 @@ public class QueryMessage extends PaintableMessage {
 	 * Create a message for painting.
 	 * @param msg an in [incoming] irc message
 	 */
-	public QueryMessage(irc.MessageEvent e) { 
+	public QueryMessage(MessageEvent e) { 
 
-		irc.Message msg = e.getMessage();
+		Message msg = e.getMessage();
 	
 		//some networks are offensive, and they'll send notices (especially AUTH
 		//with no prefix. IMO, that's just god damn annoying.  
@@ -25,12 +27,12 @@ public class QueryMessage extends PaintableMessage {
 		//
 		//ANYWHO - we'll assume the target is interesting in those cases... until a network breaks that.
 
-		String src = msg.getSource().scope(irc.MessageTarget.Scope.NONE) ? msg.getTarget().getNick() : msg.getSource().getNick();
-		irc.MessageType type = msg.getType();
+		String src = msg.getSource().scope(MessageTarget.Scope.NONE) ? msg.getTarget().getNick() : msg.getSource().getNick();
+		MessageType type = msg.getType();
 
 		//servers always notice. that's just how it is.
-		if ( msg.getSource().scope(irc.MessageTarget.Scope.NONE) || msg.getSource().scope(irc.MessageTarget.Scope.SERVER) )
-			type = irc.MessageType.NOTICE;
+		if ( msg.getSource().scope(MessageTarget.Scope.NONE) || msg.getSource().scope(MessageTarget.Scope.SERVER) )
+			type = MessageType.NOTICE;
 
 		//the message contains the nickname of the current connection
 		if ( msg.getMessage().toLowerCase().indexOf( e.getSource().nick().toLowerCase() ) != -1)
@@ -47,11 +49,11 @@ public class QueryMessage extends PaintableMessage {
 	 * @param msg the message being painted
 	 * @param dir the direction of the message: Dir.INCOMING/OUTGOING
 	 */
-	public QueryMessage(irc.MessageType type, String src, String msg, Dir dir) {
+	public QueryMessage(MessageType type, String src, String msg, Dir dir) {
 		init(type, src, msg, dir,null);
 	}
 
-	private void init(irc.MessageType type, String src, String msg, Dir dir, Color msgColor) {
+	private void init(MessageType type, String src, String msg, Dir dir, Color msgColor) {
 
 		if (msgColor == null && dir == Dir.OUTGOING)
 			msgColor = Color.white;

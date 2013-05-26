@@ -1,7 +1,7 @@
 
-package client;
+package com.coldsteelstudios.irc.client;
 
-import irc.*;
+import com.coldsteelstudios.irc.*;
 
 import java.util.List;
 import java.util.StringTokenizer;

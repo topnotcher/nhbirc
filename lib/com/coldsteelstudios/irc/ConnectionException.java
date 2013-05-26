@@ -1,4 +1,4 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 public class ConnectionException extends Exception { 
 	public ConnectionException(String msg) {

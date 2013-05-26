@@ -1,4 +1,4 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 public enum Priority {
 	LOW(3),

@@ -1,4 +1,4 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 class Driver {
 	public static void main(String argv[]) {

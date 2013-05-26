@@ -1,4 +1,4 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 /**
  * A MessageEvent is a message, combined with a 
