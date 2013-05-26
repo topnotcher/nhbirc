@@ -121,7 +121,7 @@ public class Connection {
 	/**
 	 * Subscribed message handlers
 	 */
-	private List<IrcMessageSubscription> handlers = new LinkedList<IrcMessageSubscription>();
+	private List<IrcMessageSubscription> handlers;
 	
 	/**
 	 * Tracks the state of the connection.
@@ -191,6 +191,10 @@ public class Connection {
 		this.real = real;
 
 		state = State.DISCONNECTED;
+
+		//handlers = java.util.Collections.synchronizedList( new LinkedList<IrcMessageSubscription>());
+		handlers = new com.coldsteelstudios.util.LinkedList<IrcMessageSubscription>();
+
 	}
 	
 	/**
