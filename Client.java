@@ -151,6 +151,7 @@ class Client {
 
 		irc.join( CHAN );
 
+		new Seen(irc,sync);
 	}
 
 	/**
