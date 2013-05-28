@@ -21,38 +21,19 @@ public class User implements Comparable<User>, Iterable<Channel> {
 	//list of joined channels...(not currently used)
 	private List<Channel> channels;
 
-	//registry of all user objects.
-	private static HashMap<String,User> users = new HashMap<String,User>();
+	private UserSyncManager users;
 
 	/**
 	 * at least we'll have a nick...
 	 */
-	private User(String nick) {
-		this.nick = nick;
+	public User(String nick, SyncManager sync) {
+		nick(nick);
+		this.users = sync.getUserSync();
 		channels = new LinkedList<Channel>();
-
-		users.put(nick,this);
-	}
-
-	/**
-	 * PACKAGE PRIVATE
-	 */
-	synchronized static User get(String nick) {
-		User ret = users.get(nick);
-
-		if (ret == null)
-			ret = new User(nick);
-
-		return ret;
 	}
 	
-	/**
-	 * Something decided this user doesn't need to be 
-	 * synched anymore.
-	 */
-	synchronized void suicide() {
-		users.remove(nick);
-		channels.clear();
+	public void nick(String nick) {
+		this.nick = nick;
 	}
 
 	public String getNick() {
@@ -83,11 +64,10 @@ public class User implements Comparable<User>, Iterable<Channel> {
 	}
 
 	public void join(Channel c) {
-		c.addUser(this);
 		addChannel(c);
 	}
 
-	void addChannel(Channel c) {
+	public void addChannel(Channel c) {
 
 		for (Channel channel : channels) 
 			if (c.equals(channel))
@@ -100,16 +80,13 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		return channels.size();
 	}
 
-	synchronized void nick(String nick) {
-
-		users.remove(this.nick);
-
-		this.nick = nick;
-
-		users.put(this.nick,this);
-
-		for (Channel channel: channels)
-			channel.usersChanged();
+	/**
+	 * Something decided this user doesn't need to be 
+	 * synched anymore.
+	 */ 
+	public void suicide() {
+		users.remove(nick);
+		channels.clear();
 	}
 
 	public void quit() {
@@ -124,7 +101,7 @@ public class User implements Comparable<User>, Iterable<Channel> {
 
 	}
 
-	void removeChannel(Channel c) {
+	public void removeChannel(Channel c) {
 		for (Channel channel : channels) 
 			if (c.equals(channel)) {
 				channels.remove(c);

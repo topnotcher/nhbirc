@@ -8,7 +8,10 @@ import java.util.StringTokenizer;
 
 public class SyncManager implements MessageHandler {
 
-	Connection irc;
+	protected Connection irc;
+
+	protected UserSyncManager users;
+	protected ChannelSyncManager channels;
 
 	public SyncManager( Connection irc ) {
 		this.irc = irc;
@@ -25,6 +28,15 @@ public class SyncManager implements MessageHandler {
 		;
 
 	}
+
+	public UserSyncManager getUserSync() {
+		return users;
+	}
+
+	public UserSyncManager getChannelSync() {
+		return channels;
+	}
+
 	public void handle( MessageEvent e ) {
 
 		Message m = e.getMessage();
@@ -34,7 +46,7 @@ public class SyncManager implements MessageHandler {
 		switch ( m.getType() ) {
 			
 			case JOIN:
-				getUserFromTarget( m.getSource() ).join( getChannel(m.getTarget().getChannel()) );
+				join( getUserFromTarget( m.getSource() ), getChannel(m.getTarget().getChannel()) );
 				break;
 
 			case NAME:
@@ -42,10 +54,7 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			case NICKCHANGE:
-				user = getUserFromTarget( m.getSource() );
-
-				//change the nick, notify the channels
-				user.nick( m.getTarget().getNick() );
+				nick( getUserFromTarget( m.getSource() ), m.getTarget().getNick() );
 		
 				break;
 
@@ -157,5 +166,24 @@ public class SyncManager implements MessageHandler {
 	public Channel getChannel(String name) {
 		return Channel.get(name);
 	}
+
+	private void nick(User user, String nick) {
+
+		users.remove(nick);
+		
+		user.nick(nick);
+
+		users.put(user.getNick(),user);
+
+		for (Channel channel: channels)
+			channel.usersChanged();
+	}
+
+	private void join(User u, Channel c) {
+		c.addUser(u);
+		u.join(c);
+	}
+
+
 
 }
