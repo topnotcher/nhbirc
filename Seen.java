@@ -17,6 +17,7 @@ public class Seen {
 
 		irc.addMessageHandler(lastSeenHandler)
 			.addType( MessageType.PART )
+			.addType( MessageType.KICK )
 			.addType( MessageType.NICKCHANGE )
 			.addType( MessageType.QUIT )
 		;
@@ -32,10 +33,14 @@ public class Seen {
 		String msg = e.getMessage().getMessage();
 
 		int idx = msg.indexOf(" ");
-
-		if ( idx > 0 )
+ 
+		if ( idx > 0 ) {
 			nick = msg.substring(idx+1);
-		else {
+			
+			if ( (idx = nick.indexOf(" ")) != -1 )
+				nick = nick.substring(0,idx);
+
+		} else {
 			irc.msg(chan, "Usage: !seen nickname");
 			return;
 		}
@@ -43,19 +48,19 @@ public class Seen {
 		Channel schan = sync.getChannel(chan);
 
 		for ( User u : schan ) {
-			if ( u.getNick().equals(nick) ) {
+			if ( u.getNick().toLowerCase().equals(nick.toLowerCase()) ) {
 				irc.msg(chan, nick + " is on the channel right now!");
 				return;
 			}
 		}
 		
 
-		if ( ! acts.containsKey(nick) ) {
+		if ( ! acts.containsKey(nick.toLowerCase()) ) {
 			irc.msg(chan, "I have not seen " + nick);
 		} else {
-			Seen.LastAction l = acts.get(nick);
-
-			irc.msg(chan,"I last saw " + nick + " " + (System.currentTimeMillis() - l.time)/60 + " seconds ago.");
+			Seen.LastAction l = acts.get(nick.toLowerCase());
+			
+			irc.msg(chan,"I last saw " + nick + " " + (System.currentTimeMillis()/1000 - l.time) + " seconds ago. (" + l.act + ").");
 		}
 
 	}};
@@ -63,8 +68,29 @@ public class Seen {
 	public MessageHandler lastSeenHandler = new MessageHandler() { public void handle(MessageEvent e) {
 //		System.out.println("Source: " + e.getMessage().getSource());
 //		System.out.println("Target: " + e.getMessage().getTarget());
+//	
+		String nick = e.getMessage().getSource().getNick();
+		String act = "derp";
 
-		acts.put(e.getMessage().getSource().getNick(),new Seen.LastAction(System.currentTimeMillis(), "derp"));
+		switch (e.getMessage().getType()) {
+			case PART:
+				act = "left the channel";
+				break;
+			case KICK:
+				//in kicks, the source is the kicker and the target is the channel!
+				nick = e.getMessage().getArg(2);
+				act = "kicked from the channel";
+				break;
+			case NICKCHANGE:
+				act = "changed nickname to " + e.getMessage().getTarget().getNick();
+				break;
+			case QUIT:
+				act = "quit";
+				break;
+			default: act = "I don't know what happened";
+		}
+	
+		acts.put(nick.toLowerCase(),new Seen.LastAction(System.currentTimeMillis()/1000, act));
 
 	}};
 

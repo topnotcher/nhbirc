@@ -29,6 +29,7 @@ public class SyncManager implements MessageHandler {
 			.addType( MessageType.QUIT )
 			.addType( MessageType.PART )
 			.addType( MessageType.NAME )
+			.addType( MessageType.KICK )
 			.addType( MessageType.TOPIC )
 			.addType( MessageType.CHANNELMODE )
 			.addType( MessageType.TOPICCHANGE )
@@ -64,7 +65,6 @@ public class SyncManager implements MessageHandler {
 			//and remove all the users from that channel.
 			//if a user is in 0 channels, then remove the user from the hash map...
 			case PART:
-
 				user = getUserFromTarget(m.getSource());
 				part( user, getChannel( m.getTarget().getChannel() ) );
 
@@ -72,6 +72,20 @@ public class SyncManager implements MessageHandler {
 					getChannel( m.getTarget().getChannel() ).destroy();
 
 				break;
+
+			case KICK:
+				user = getUser(m.getArg(2));
+				part( user, getChannel( m.getTarget().getChannel() ) );
+
+				//@TODO
+				if ( user.getNick().toLowerCase() == irc.nick().toLowerCase() ) 
+					getChannel( m.getTarget().getChannel() ).destroy();
+
+				break;
+
+
+
+
 
 			case TOPIC:
 				getChannel( m.getArg(2) ).setTopic(m.getMessage());
@@ -92,6 +106,8 @@ public class SyncManager implements MessageHandler {
 				break;
 
 			default:
+				//@TODO
+				System.err.println("Received unknown message type: "+m.getType());
 				break;
 		}
 
@@ -131,6 +147,7 @@ public class SyncManager implements MessageHandler {
 			if ( mode != ChannelUser.Mode.NONE )
 				nick = nick.substring(1);
 
+
 			u = getUser( nick );
 			u.addChannel(c);
 
@@ -141,16 +158,19 @@ public class SyncManager implements MessageHandler {
 	}
 
 	public User getUser(String nick) {
-		User ret = users.get(nick);
+		String lowernick = nick.toLowerCase();
+
+		User ret = users.get(lowernick);
 
 		if (ret == null) {
 			ret = new User(nick);
-			users.put(nick,ret);
+			users.put(lowernick,ret);
 		}
 			
 
 		return ret;
 	}
+
 
 	private User getUserFromTarget(MessageTarget tg) {
 
