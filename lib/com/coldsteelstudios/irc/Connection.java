@@ -1,16 +1,17 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 import java.net.Socket;
 import java.io.PrintWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
-//import java.util.concurrent.PriorityBlockingQueue;
-//import java.util.concurrent.BlockingQueue;
-import util.PriorityBlockingQueue;
-import util.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+//import util.PriorityBlockingQueue;
+//import util.BlockingQueue;
 
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import java.util.Set;
@@ -120,7 +121,7 @@ public class Connection {
 	/**
 	 * Subscribed message handlers
 	 */
-	private List<IrcMessageSubscription> handlers = new util.LinkedList<IrcMessageSubscription>();
+	private List<IrcMessageSubscription> handlers;
 	
 	/**
 	 * Tracks the state of the connection.
@@ -190,6 +191,10 @@ public class Connection {
 		this.real = real;
 
 		state = State.DISCONNECTED;
+
+		//handlers = java.util.Collections.synchronizedList( new LinkedList<IrcMessageSubscription>());
+		handlers = new com.coldsteelstudios.util.LinkedList<IrcMessageSubscription>();
+
 	}
 	
 	/**
@@ -548,7 +553,7 @@ public class Connection {
 		public IrcMessageSubscription addCommand(String cmd) {
 			
 			if ( cmds == null ) 
-				cmds = new util.LinkedList<String>();
+				cmds = new LinkedList<String>();
 
 			cmds.add(cmd);
 
@@ -561,7 +566,7 @@ public class Connection {
 		public IrcMessageSubscription addPattern(Pattern p) {
 			
 			if ( patterns == null )
-				patterns = new util.LinkedList<Pattern>();
+				patterns = new LinkedList<Pattern>();
 
 			patterns.add(p);
 

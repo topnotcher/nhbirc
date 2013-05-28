@@ -1,4 +1,4 @@
-package client;
+package com.coldsteelstudios.irc.client;
 
 /**
  * A user is just a user...

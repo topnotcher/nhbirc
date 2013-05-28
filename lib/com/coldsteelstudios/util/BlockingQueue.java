@@ -1,4 +1,4 @@
-package util;
+package com.coldsteelstudios.util;
 
 import java.util.concurrent.TimeUnit;
 

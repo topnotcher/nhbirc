@@ -1,6 +1,6 @@
 JC=javac
-CLASSPATH=.
-JFLAGS=-g -classpath $(CLASSPATH) 
+CLASSPATH=.:lib/
+JFLAGS=-g -Xlint:unchecked -classpath $(CLASSPATH) 
 SRC=.
 SOURCES=$(shell find $(SRC) -name '*.java')
 OBJECTS=$(SOURCES:.java=.class)
@@ -15,7 +15,7 @@ all: classes
 classes: $(OBJECTS)
 
 run: all
-	java Launcher
+	java -cp $(CLASSPATH) Launcher
 
 jar: classes
 	jar cfe client.jar Launcher *.class util/*.class irc/*.class client/*.class

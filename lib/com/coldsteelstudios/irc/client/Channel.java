@@ -1,9 +1,11 @@
-package client;
+package com.coldsteelstudios.irc.client;
 
 import java.util.List;
+import java.util.LinkedList;
 import java.util.Iterator;
 import java.util.HashMap;
 
+import com.coldsteelstudios.util.ListSorter;
 
 //reflection
 import java.lang.reflect.Method;
@@ -48,7 +50,7 @@ public class Channel implements Iterable<User> {
 
 		//pre-instantiate this as it should always contain
 		//at least one element: the current client...
-		users = new util.LinkedList<ChannelUser>();
+		users = new LinkedList<ChannelUser>();
 
 		channels.put(name,this);
 	}
@@ -229,7 +231,7 @@ public class Channel implements Iterable<User> {
 
 	void usersChanged() {
 		//@TODO make this better :/
-		util.ListSorter.sort(users );
+		ListSorter.sort(users );
 
 		notifyListeners("usersChanged");
 	}
@@ -268,7 +270,7 @@ public class Channel implements Iterable<User> {
 
 	public void addChannelListener(ChannelListener c) {
 		if (subs == null)
-			subs = new util.LinkedList<ChannelListener>();
+			subs = new LinkedList<ChannelListener>();
 
 		subs.add(c);
 	}

@@ -11,9 +11,11 @@ import java.awt.Color;
 import java.awt.Container;
 
 
-import irc.*;
+import com.coldsteelstudios.irc.*;
+import com.coldsteelstudios.irc.client.*;
 
 import java.util.List;
+import java.util.LinkedList;
 
 /**
  * The main "client class". Organizes the GUI and passes messages to the appropriate GUI components.
@@ -50,7 +52,7 @@ class Client {
 	/**
 	 * Channel state syncing.
 	 */
-	private client.SyncManager sync;
+	private SyncManager sync;
 
 	/**
 	 * Default channel to join. (RFC2812 provides for comma-separated channels)
@@ -74,7 +76,7 @@ class Client {
 	 */
 	Client(Container parent) {
 	
-		windows = new util.LinkedList<ChatWindow>();
+		windows = new LinkedList<ChatWindow>();
 
 		//tabs is the main viewport.
 		tabs = new JTabbedPane();
@@ -138,7 +140,7 @@ class Client {
 		 *
 		 * @see Connection.registerMessageHandler() for more information
 		 */
-		sync = new client.SyncManager(irc);
+		sync = new SyncManager(irc);
 
 		try {
 
@@ -446,7 +448,7 @@ class Client {
 			//because a lot of these need a window and a user
 			//and case blocks don't have scope
 			//I really should just handle these wtih refelection or something.
-			client.User user;
+			User user;
 			ChatWindow win;
 
 			switch(msg.getType()) {
@@ -526,7 +528,7 @@ class Client {
 				case NICKCHANGE:
 					user = sync.getUser( msg.getSource().getNick() );
 					
-					for ( client.Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
+					for ( Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
 						win.put(
 							(new PaintableMessage()).append("--- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 								.append(" is now known as ").append(msg.getTarget().getNick(), Color.cyan)
@@ -538,7 +540,7 @@ class Client {
 				case QUIT:
 					user = sync.getUser( msg.getSource().getNick() );
 
-					for ( client.Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
+					for ( Channel channel : user ) if ( (win = getWindow( channel.getName() )) != null) {
 						win.put(
 							(new PaintableMessage()).append("<-- ",Color.lightGray).append(msg.getSource().getNick(), Color.white)
 								.append(" [", Color.darkGray).append(msg.getSource().toString(), Color.cyan).append("]",Color.darkGray).append(" QUIT ")

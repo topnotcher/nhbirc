@@ -1,6 +1,9 @@
 import java.awt.Color;
 import java.awt.Graphics;
 import java.util.List;
+import java.util.LinkedList;
+
+import com.coldsteelstudios.util.FixedStack;
 
 /**
  * A Concrete implementation of PaintableText that
@@ -33,7 +36,7 @@ class PaintableMessage implements PaintableText {
 	 * Create an empty message
 	 */
 	public PaintableMessage() {
-		strings = new util.LinkedList<PaintableText>();
+		strings = new LinkedList<PaintableText>();
 	}
 	
 	/**

@@ -1,6 +1,7 @@
-package irc;
+package com.coldsteelstudios.irc;
 
 import java.util.List;
+import java.util.LinkedList;
 
 /**
  * BASIC format of an IRC Message:
@@ -21,7 +22,7 @@ class MessageParser {
 
 		message.setRaw(msg);
 
-		List<String> args = new util.LinkedList<String>();
+		List<String> args = new LinkedList<String>();
 
 		String trailing = null;
 		String prefix = null;

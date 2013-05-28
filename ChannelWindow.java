@@ -11,7 +11,7 @@ import java.awt.Dimension;
 import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 
-import client.*;
+import com.coldsteelstudios.irc.client.*;
 
 
 /**
@@ -34,7 +34,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 	 */
 	private JTextField topic;
 
-	public ChannelWindow(String channel_name, client.SyncManager sync) {
+	public ChannelWindow(String channel_name, SyncManager sync) {
 		super(channel_name, ChannelWindow.Type.CHANNEL);
 
 		//note that the sync manager will create the channel
@@ -59,7 +59,7 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 		//the user list on the right.
 		
-		JList userlist = new JList(list);
+		JList userlist = new JList<ChannelUser>(list);
 		
 		/**
 		 * @TODO don't hardcode this...
@@ -91,11 +91,11 @@ public class ChannelWindow extends ChatWindowAbstract {
 
 	}
 
-	private class ChannelListModel extends AbstractListModel {
+	private class ChannelListModel extends AbstractListModel<ChannelUser> {
 		public int getSize() {
 			return channel.numUsers();
 		}
-		public Object getElementAt(int idx) {
+		public ChannelUser getElementAt(int idx) {
 			return channel.getUser(idx);
 		}
 		private void update() {

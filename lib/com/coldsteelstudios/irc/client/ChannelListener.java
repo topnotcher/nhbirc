@@ -1,4 +1,4 @@
-package client;
+package com.coldsteelstudios.irc.client;
 
 public interface ChannelListener {
 
