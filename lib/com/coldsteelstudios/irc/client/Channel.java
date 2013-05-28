@@ -3,7 +3,6 @@ package com.coldsteelstudios.irc.client;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Iterator;
-import java.util.HashMap;
 
 import com.coldsteelstudios.util.ListSorter;
 
@@ -40,32 +39,18 @@ public class Channel implements Iterable<User> {
 	private List<ChannelListener> subs;
 
 
-	private static HashMap<String,Channel> channels = new HashMap<String,Channel>();
 
 	/**
 	 * Create an empty channel with a name...
 	 */
-	private Channel(String name) {
+	public Channel(String name) {
 		this.name = name;
 
 		//pre-instantiate this as it should always contain
 		//at least one element: the current client...
-		users = new LinkedList<ChannelUser>();
+//		users = new LinkedList<ChannelUser>();
+		users = java.util.Collections.synchronizedList( new LinkedList<ChannelUser>());
 
-		channels.put(name,this);
-	}
-
-	/**
-	 * Getter for the channel registry.
-	 * package-private: should only be called via SyncManager
-	 */
-	synchronized static Channel get(String name) {
-		Channel ret = channels.get(name);
-
-		if (ret == null)
-			ret = new Channel(name);
-
-		return ret;
 	}
 
 	/**
@@ -125,13 +110,12 @@ public class Channel implements Iterable<User> {
 	 * Handle the dirty work of adding a user to a channel...
 	 * This is for internal use: it Does*Not*Fire*usersChanged*
 	 */
-	synchronized void addUserToList(User user) {
+	void addUserToList(User user) {
 		
 
 		if ( getChannelUser(user) != null )
 			return;
 
-		//@TODO: synchronize access to the users list...
 		users.add( new ChannelUser(user) );
 	}
 
@@ -144,7 +128,7 @@ public class Channel implements Iterable<User> {
 	}
 
 
-	synchronized void delUser(User user) {
+	public void delUser(User user) {
 
 		ChannelUser cuser = getChannelUser( user );
 
@@ -156,35 +140,22 @@ public class Channel implements Iterable<User> {
 		}
 	}
 
-	/**
-	 * Self-destruct when something
-	 * decides this channel is no longer needed.
-	 *
-	 * In theory SyncManager makes reaonable decisions regarding destroying
-	 * channel objects.  It is potentially possible for a channel to be destroyed()
-	 * while the chanel window remains open, which would cause the window to be 
-	 * "disconnected" from the channel's state. All of the client UI code needs some rethinking...
-	 */
-	synchronized void destroy() {
-		channels.remove(name);
-
-		for (User u : this) 
-			u.removeChannel(this);
-
-		users.clear();
-		subs.clear();
-		name = "";
-	}
-
-	synchronized void setUserMode(User user, ChannelUser.Mode mode) {
+	public void setUserMode(User user, ChannelUser.Mode mode) {
 		ChannelUser cuser = getChannelUser(user);
 
 		///@TODO
 		if (cuser == null)
 			throw new RuntimeException("Trying to set mode on a user who isn't in the channel!!!!");
-
+		
 		cuser.setMode(mode);
 	}
+
+	public void destroy() {
+		users.clear();
+		subs.clear();
+		name = "";
+	}
+
 
 	public int numUsers() {
 		return (users == null) ? 0 : users.size();
@@ -270,7 +241,8 @@ public class Channel implements Iterable<User> {
 
 	public void addChannelListener(ChannelListener c) {
 		if (subs == null)
-			subs = new LinkedList<ChannelListener>();
+			subs = java.util.Collections.synchronizedList( new LinkedList<ChannelListener>());
+//			subs = new LinkedList<ChannelListener>();
 
 		subs.add(c);
 	}

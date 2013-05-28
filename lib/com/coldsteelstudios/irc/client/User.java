@@ -21,15 +21,10 @@ public class User implements Comparable<User>, Iterable<Channel> {
 	//list of joined channels...(not currently used)
 	private List<Channel> channels;
 
-	private UserSyncManager users;
-
-	/**
-	 * at least we'll have a nick...
-	 */
-	public User(String nick, SyncManager sync) {
+	public User(String nick) {
 		nick(nick);
-		this.users = sync.getUserSync();
-		channels = new LinkedList<Channel>();
+		channels = java.util.Collections.synchronizedList( new LinkedList<Channel>());
+	//	channels = new LinkedList<Channel>();
 	}
 	
 	public void nick(String nick) {
@@ -69,9 +64,10 @@ public class User implements Comparable<User>, Iterable<Channel> {
 
 	public void addChannel(Channel c) {
 
-		for (Channel channel : channels) 
+		for (Channel channel : channels) {
 			if (c.equals(channel))
 				return;
+		}
 				
 		channels.add(c);
 	}
@@ -80,38 +76,19 @@ public class User implements Comparable<User>, Iterable<Channel> {
 		return channels.size();
 	}
 
-	/**
-	 * Something decided this user doesn't need to be 
-	 * synched anymore.
-	 */ 
-	public void suicide() {
-		users.remove(nick);
-		channels.clear();
-	}
-
-	public void quit() {
-		for (Channel channel : channels) 
-			channel.delUser(this);
-		suicide();
-	}
-
 	public void part(Channel c) {
-		c.delUser(this);
 		removeChannel(c);
-
 	}
 
-	public void removeChannel(Channel c) {
-		for (Channel channel : channels) 
+	private void removeChannel(Channel c) {
+		for (Channel channel : channels)  {
 			if (c.equals(channel)) {
 				channels.remove(c);
 				return;
 			}
+		}
 
-		if (numChannels() == 0)
-			suicide();
 	}
-
 	public boolean equals(User u) {
 		return u.nick.equals(nick);
 	}

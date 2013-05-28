@@ -6,12 +6,19 @@ import com.coldsteelstudios.irc.*;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+
+
 public class SyncManager implements MessageHandler {
 
 	protected Connection irc;
 
-	protected UserSyncManager users;
-	protected ChannelSyncManager channels;
+	protected static Map<String,Channel> channels = new ConcurrentHashMap<String,Channel>();
+
+	protected static Map<String,User> users = new ConcurrentHashMap<String,User>();
+
 
 	public SyncManager( Connection irc ) {
 		this.irc = irc;
@@ -27,14 +34,6 @@ public class SyncManager implements MessageHandler {
 			.addType( MessageType.TOPICCHANGE )
 		;
 
-	}
-
-	public UserSyncManager getUserSync() {
-		return users;
-	}
-
-	public UserSyncManager getChannelSync() {
-		return channels;
 	}
 
 	public void handle( MessageEvent e ) {
@@ -55,14 +54,10 @@ public class SyncManager implements MessageHandler {
 
 			case NICKCHANGE:
 				nick( getUserFromTarget( m.getSource() ), m.getTarget().getNick() );
-		
 				break;
 
 			case QUIT:
-
-				user = getUserFromTarget(m.getSource());
-				user.quit();
-
+				quit(getUserFromTarget(m.getSource()));
 				break;
 
 			//@TODO: when I part, remove the channel, then loop through the channels users
@@ -71,7 +66,7 @@ public class SyncManager implements MessageHandler {
 			case PART:
 
 				user = getUserFromTarget(m.getSource());
-				user.part( getChannel( m.getTarget().getChannel() ) );
+				part( user, getChannel( m.getTarget().getChannel() ) );
 
 				if ( m.isFromMe() ) 
 					getChannel( m.getTarget().getChannel() ).destroy();
@@ -146,7 +141,15 @@ public class SyncManager implements MessageHandler {
 	}
 
 	public User getUser(String nick) {
-		return User.get(nick);
+		User ret = users.get(nick);
+
+		if (ret == null) {
+			ret = new User(nick);
+			users.put(nick,ret);
+		}
+			
+
+		return ret;
 	}
 
 	private User getUserFromTarget(MessageTarget tg) {
@@ -164,9 +167,21 @@ public class SyncManager implements MessageHandler {
 	}
 
 	public Channel getChannel(String name) {
-		return Channel.get(name);
+		Channel ret = channels.get(name);
+
+		if (ret == null) {
+			ret = new Channel(name);
+			channels.put(name,ret);
+		}
+	
+
+		return ret;
 	}
 
+
+	/**
+ 	 * Handle a nick change.
+ 	 */
 	private void nick(User user, String nick) {
 
 		users.remove(nick);
@@ -175,15 +190,60 @@ public class SyncManager implements MessageHandler {
 
 		users.put(user.getNick(),user);
 
-		for (Channel channel: channels)
+		for (Channel channel: user.getChannels())
 			channel.usersChanged();
 	}
-
+	
+	/** 
+ 	 * handle a join.
+ 	 */
 	private void join(User u, Channel c) {
 		c.addUser(u);
 		u.join(c);
 	}
 
+	/**
+	 * Something decided this user doesn't need to be 
+	 * synched anymore.
+	 * (should probably remove user from all channels as a precaution....)
+	 */ 
+	private void removeUser(User u) {
+		users.remove(u.getNick());
+		u.getChannels().clear();
+	}
+
+	private void quit(User u) {
+		for (Channel channel : u.getChannels()) 
+			channel.delUser(u);
+
+		removeUser(u);
+	}
+
+
+	private void part(User u, Channel c) {
+		c.delUser(u);
+		u.part(c);
+
+		if ( u.numChannels() == 0 )
+			removeUser(u);
+	}
+
+
+
+	/**
+	 * In theory SyncManager makes reaonable decisions regarding `destroying
+	 * channel objects.  It is potentially possible for a channel to be destroyed()
+	 * while the chanel window remains open, which would cause the window to be 
+	 * "disconnected" from the channel's state. All of the client UI code needs some rethinking...
+	 */
+	public void destroyChannel(Channel c) {
+		channels.remove(c.getName());
+
+		for (User u : c) 
+			part(u,c);
+
+		c.destroy();
+	}
 
 
 }
