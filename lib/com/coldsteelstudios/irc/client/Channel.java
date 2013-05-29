@@ -119,6 +119,27 @@ public class Channel implements Iterable<User> {
 		users.add( new ChannelUser(user) );
 	}
 
+	public void join(User u) {
+		addUser(u);
+		notifyListeners("join", this, u);
+	}
+
+	public void part(User u) {
+		delUser(u);
+		notifyListeners("part", this, u);
+	}
+
+	public void kick(User u) {
+		delUser(u);
+		notifyListeners("kick", this, u);
+	}
+
+	//New user, old nick.
+	public void nick(User user, String nick) {
+		notifyListeners("nick", this, user, nick);
+		notifyListeners("usersChanged");
+	}
+	
 	//Add a single user.
 	public void addUser(User u) {
 
@@ -204,19 +225,19 @@ public class Channel implements Iterable<User> {
 		//@TODO make this better :/
 		ListSorter.sort(users );
 
-		notifyListeners("usersChanged");
+		notifyListeners("usersChanged", this);
 	}
 
 	void topicChanged() {
-		notifyListeners("topicChanged");
+		notifyListeners("topicChanged", this);
 	}
 
-	private void notifyListeners(String event) {
+	private void notifyListeners(String event, Object ... params) {
 		
 		if ( subs == null ) return;
 
 		Class[] paramtypes = {this.getClass()};
-		Object[] params = {this};
+//		Object[] params = {this};
 
 		for (ChannelListener l : subs) {
 			try {
