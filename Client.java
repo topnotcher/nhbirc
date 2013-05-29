@@ -153,6 +153,7 @@ class Client {
 
 		new Seen(irc,sync);
 		new Joke(irc,sync);
+		sync.getChannel("#fielty").addChannelListener(new ChannelDebug());
 
 	}
 
