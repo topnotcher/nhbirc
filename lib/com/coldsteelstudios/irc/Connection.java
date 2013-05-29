@@ -7,8 +7,8 @@ import java.io.InputStreamReader;
 
 //import java.util.concurrent.PriorityBlockingQueue;
 //import java.util.concurrent.BlockingQueue;
-import util.PriorityBlockingQueue;
-import util.BlockingQueue;
+import com.coldsteelstudios.util.PriorityBlockingQueue;
+import com.coldsteelstudios.util.BlockingQueue;
 
 import java.util.Iterator;
 import java.util.LinkedList;
