@@ -201,17 +201,19 @@ public class SyncManager implements MessageHandler {
 
 	/**
  	 * Handle a nick change.
+	 * Old user, new nick.
  	 */
 	private void nick(User user, String nick) {
 
-		users.remove(nick);
+		String oldnick = user.getNick();
 		
 		user.nick(nick);
-
-		users.put(user.getNick(),user);
+		users.put(nick, user);
+		users.remove(oldnick);
 
 		for (Channel channel: user.getChannels())
-			channel.usersChanged();
+			//current user, old nick.
+			channel.nick(user,oldnick);
 	}
 	
 	/** 
