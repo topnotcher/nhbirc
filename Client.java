@@ -58,7 +58,7 @@ class Client {
 	 * Default channel to join. (RFC2812 provides for comma-separated channels)
 	 * @TODO connection dialog.
 	 */
-	private final String CHAN = "#fielty";
+	private final String CHAN = "#fielty,#foo";
 
 
 	private volatile boolean reconnect = true;
@@ -152,9 +152,7 @@ class Client {
 		irc.join( CHAN );
 
 		new Seen(irc,sync);
-		new Joke(irc,sync);
-		sync.getChannel("#fielty").addChannelListener(new ChannelDebug());
-
+		new Bans(irc,sync);
 	}
 
 	/**
