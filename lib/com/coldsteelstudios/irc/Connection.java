@@ -607,28 +607,42 @@ public class Connection {
 			if ( this.types != null && !types.contains( msg.getType() ) )
 				return;
 
-			//code or pattern must match...
-			boolean codeMatches = true,
-					cmdMatches = true;
 
-			if ( this.codes != null && (msg.getCode() == null || !codes.contains( msg.getCode() )) )
-				codeMatches = false;
-
+			boolean match = false;
+			boolean cmdMatch = false;
+			boolean codeMatch = false;
+			
+			if ( codes != null && msg.getCode() != null && codes.contains( msg.getCode() ) )
+				codeMatch = true;
 		
-			//if the code DOESN'T match and there are commands to match.
-			if ( !codeMatches && this.cmds != null ) {
-				cmdMatches = false;
-
+			if ( cmds != null ) {
 				for (String cmd : cmds) {
 					if ( cmd.equals(msg.getCommand()) ) {
-						cmdMatches = true;
+						cmdMatch = true;
 						break;
 					}
 				}
 			}
 
+			//case 1: no commands or codes to match = match 
+			if ( this.cmds == null && this.codes == null ) {
+				match = true;
+
+			//there are codes to match, so the codes
+			} else if ( this.cmds == null ) {
+				match = codeMatch;
+
+			//likewise, but commands
+			} else if ( this.codes == null ) {
+				match = cmdMatch;
+
+			//BOTH are non null. 
+			} else {
+				match = (cmdMatch||codeMatch);
+			}
+
 			//if we didn't find a command or code match...
-			if ( !(cmdMatches || codeMatches) ) 
+			if ( !match ) 
 				return;
 
 			//Patterns must always match....
