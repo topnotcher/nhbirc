@@ -35,6 +35,9 @@ public enum MessageCode {
 	RPL_UMODEIS 
 		( "221", MessageType.USERMODE ),
 
+	//unreal
+	RPL_STATSGLINE ( "223"),
+
 	RPL_SERVLIST   ("234"),
 	RPL_SERVLISTEND   ("235"),
 	RPL_STATSUPTIME   ("242"),
