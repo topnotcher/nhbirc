@@ -152,6 +152,7 @@ class Client {
 		irc.join( CHAN );
 
 		new Seen(irc,sync);
+		new Echo(irc,sync);
 		new Joke(irc,sync);
 		sync.getChannel("#fielty").addChannelListener(new ChannelDebug());
 
