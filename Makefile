@@ -17,6 +17,9 @@ classes: $(OBJECTS)
 run: all
 	java -cp $(CLASSPATH) Launcher
 
+debug: all
+	jdb -sourcepath $(CLASSPATH) -classpath $(CLASSPATH) Launcher
+
 jar: classes
 	jar cfe client.jar Launcher *.class util/*.class irc/*.class client/*.class
 
