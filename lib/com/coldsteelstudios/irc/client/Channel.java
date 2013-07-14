@@ -137,7 +137,7 @@ public class Channel implements Iterable<User> {
 	//New user, old nick.
 	public void nick(User user, String nick) {
 		notifyListeners("nick", this, user, nick);
-		notifyListeners("usersChanged");
+		notifyListeners("usersChanged",this);
 	}
 	
 	//Add a single user.
@@ -236,25 +236,29 @@ public class Channel implements Iterable<User> {
 		
 		if ( subs == null ) return;
 
-		Class[] paramtypes = {this.getClass()};
+		Class paramtypes[] = new Class[params.length];
+		
+		for ( int i = 0; i < params.length; ++i )
+			paramtypes[i] = params[i].getClass();
+
 //		Object[] params = {this};
 
 		for (ChannelListener l : subs) {
 			try {
 				//FIND the method (or exception if not defined)
-				Method command = Class.forName("ChannelListener").getDeclaredMethod(event,paramtypes);
+				Method command = Class.forName("com.coldsteelstudios.irc.client.ChannelListener").getDeclaredMethod(event,paramtypes);
 		
 				//invoke the method
 				command.invoke(l,params);
 			} catch (NoSuchMethodException e) {
-
+				System.err.println(e);
 				//won't happen.
 			} catch (IllegalAccessException e) {
-
+				System.err.println(e);
 			} catch (InvocationTargetException e) {
-
+				System.err.println(e);
 			} catch (ClassNotFoundException e) {
-
+				System.err.println(e);
 			}
 		}
 	}
@@ -263,7 +267,10 @@ public class Channel implements Iterable<User> {
 	public void addChannelListener(ChannelListener c) {
 		if (subs == null)
 			subs = java.util.Collections.synchronizedList( new LinkedList<ChannelListener>());
-//			subs = new LinkedList<ChannelListener>();
+
+		//cheap hack to keep from double registering.
+		for (ChannelListener l : subs) 
+			if (l == c) return;
 
 		subs.add(c);
 	}

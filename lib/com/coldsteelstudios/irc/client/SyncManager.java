@@ -220,7 +220,7 @@ public class SyncManager implements MessageHandler {
  	 * handle a join.
  	 */
 	private void join(User u, Channel c) {
-		c.addUser(u);
+		c.join(u);
 		u.join(c);
 	}
 
@@ -243,7 +243,7 @@ public class SyncManager implements MessageHandler {
 
 
 	private void part(User u, Channel c) {
-		c.delUser(u);
+		c.part(u);
 		u.part(c);
 
 		if ( u.numChannels() == 0 )
