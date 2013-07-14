@@ -86,6 +86,7 @@ public class Connection {
 	 */
 	private String nick;
 	
+	private String defaultNick;
 	/**
 	 * The user/ident.
 	 * @TODO get this from the server? The sever doesn't necessarily accept what we give it (identd, ~)
@@ -187,6 +188,7 @@ public class Connection {
 		this.host = host;
 		this.port = port;
 		this.nick = nick;
+		this.defaultNick = nick;
 		this.user = user;
 		this.real = real;
 
@@ -298,11 +300,16 @@ public class Connection {
 	private void autoreconnect() {
 		final int delay = 10000;
 
+		//note: there is some potentially fucked up shit going on here.
+		//I believe that if it autoreconnects too fast, the reader/writer threads
+		//in the worker are still running (blocking). When they interrupt,
+		//the connection state is set to connected again, but they detect an error and
+		//disconnect. IN theory sleeping FIRST here is a cheap fix
 		while (true) try {
+			try { Thread.sleep(delay); } catch (Exception ex) {}
 			connect();
 			break;
-		} catch (ConnectionException e) {
-			try { Thread.sleep(delay); } catch (Exception ex) {}
+		} catch (ConnectionException e) {	
 			continue;
 		}
 	}
@@ -317,7 +324,7 @@ public class Connection {
 			send("PASS",pass);
 		
 
-		send("NICK", nick);
+		send("NICK", defaultNick);
 		send("USER" ,user, "0", "*", real);
 	}
 
@@ -342,7 +349,7 @@ public class Connection {
 		//send the nick command...	
 		send(p, "NICK", nick);
 
-		this.nick = nick;
+		this.defaultNick = nick;
 
 		//@TODO monitor for failed nick changes.
 		//only set the nick on a successful reply..
@@ -778,6 +785,7 @@ public class Connection {
 			//This is a not very nice hack.
 			//Also note that this doesn't allow us to quit!
 			autoreconnect();
+			return;
 		}
 	}
 
@@ -846,7 +854,6 @@ public class Connection {
 					throw new ConnectionStateException("Trying to run wihout being connected???");
 	
 				while ( state != State.DISCONNECTED ) try {	
-					
 					/**
 					 * NOTE: this *should* work.  
 					 * Not 100% sure in the case of CTCPS
@@ -877,8 +884,8 @@ public class Connection {
 					throw new ConnectionStateException("Trying to run wihout being connected???");
 
 	
-				while( state != State.DISCONNECTED ) try {	
-					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
+				while( state != State.DISCONNECTED ) try {
+					sendMsg( sendQ.poll(5, java.util.concurrent.TimeUnit.MILLISECONDS) );
 				} catch (InterruptedException e) {
 				}
 			}
