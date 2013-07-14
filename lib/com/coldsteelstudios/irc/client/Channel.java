@@ -242,7 +242,7 @@ public class Channel implements Iterable<User> {
 		for (ChannelListener l : subs) {
 			try {
 				//FIND the method (or exception if not defined)
-				Method command = Class.forName("client.ChannelListener").getDeclaredMethod(event,paramtypes);
+				Method command = Class.forName("ChannelListener").getDeclaredMethod(event,paramtypes);
 		
 				//invoke the method
 				command.invoke(l,params);
