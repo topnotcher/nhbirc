@@ -292,6 +292,21 @@ public class Connection {
 		//the connection is registered, so the client is now in a usable state and can execute commands.
 	}
 
+	/**
+	 * This is some fucking cheezy assshit!
+	 */
+	private void autoreconnect() {
+		final int delay = 10000;
+
+		while (true) try {
+			connect();
+			break;
+		} catch (ConnectionException e) {
+			try { Thread.sleep(delay); } catch (Exception ex) {}
+			continue;
+		}
+	}
+
 	//initiate registration
 	private void register() {
 		//All the commands in this method must go through sendRaw.
@@ -722,13 +737,26 @@ public class Connection {
 		private Worker() {}
 
 		public void run() {
+			while( state != State.DISCONNECTED ) {
 
-			while( state != state.DISCONNECTED ) {
+				long rx_time = System.currentTimeMillis() - last_rx;
+				long ping_time = System.currentTimeMillis() - last_ping;
+				//ping timeout
+				if ( (rx_time > MAX_IDLE) || (rx_time > PING_TIMEOUT && ping_time >= PING_TIMEOUT/2 && ping_time < 2*PING_TIMEOUT ) ) { 
+					System.err.println("PING TIMEOUT");
+					conn.close();
+				}
+				
+				//active keep-alives.
+				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
+					ping();
+
+
 
 				Message msg = null;
 
 				try {
-					msg = recvQ.poll(PING_TIMEOUT, java.util.concurrent.TimeUnit.SECONDS);
+					msg = recvQ.poll(PING_TIMEOUT/3, java.util.concurrent.TimeUnit.SECONDS);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -745,16 +773,11 @@ public class Connection {
 					e.printStackTrace();
 				}
 
-				//ping timeout
-				if ( System.currentTimeMillis() - last_rx > MAX_IDLE ) { 
-					System.err.println("PING TIMEOUT");
-					conn.close();
-				}
-				
-				//active keep-alives.
-				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
-					ping();
 			}
+			
+			//This is a not very nice hack.
+			//Also note that this doesn't allow us to quit!
+			autoreconnect();
 		}
 	}
 
@@ -855,9 +878,7 @@ public class Connection {
 
 	
 				while( state != State.DISCONNECTED ) try {	
-
 					sendMsg( sendQ.poll(10, java.util.concurrent.TimeUnit.SECONDS) );
-		
 				} catch (InterruptedException e) {
 				}
 			}
@@ -876,6 +897,7 @@ public class Connection {
 			try { 
 				out.print( msg.getMessage() );
 				out.print( "\r\n" );
+			//	conn.setSendBufferSize(msg.getMessage().length()+2);
 				out.flush();
 			} catch (Exception e) {
 //				e.printStackTrace();
