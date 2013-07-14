@@ -236,7 +236,7 @@ public class SyncManager implements MessageHandler {
 
 	private void quit(User u) {
 		for (Channel channel : u.getChannels()) 
-			channel.delUser(u);
+			channel.part(u);
 
 		removeUser(u);
 	}
