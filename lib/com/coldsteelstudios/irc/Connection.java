@@ -195,6 +195,15 @@ public class Connection {
 		//handlers = java.util.Collections.synchronizedList( new LinkedList<IrcMessageSubscription>());
 		handlers = new com.coldsteelstudios.util.LinkedList<IrcMessageSubscription>();
 
+		addMessageHandler(this.internalHandler)
+			.addType( MessageType.PING )
+			.addType( MessageType.ERROR )
+			.addType( MessageType.NICKCHANGE )
+			.or()
+			.addCode( MessageCode.RPL_WELCOME )
+			.addCommand( "ERROR" )	
+		;
+
 	}
 	
 	/**
@@ -258,15 +267,6 @@ public class Connection {
 		//)
 		(new Thread( new Worker(), "Message Handler" )).start();
 	
-		addMessageHandler(this.internalHandler)
-			.addType( MessageType.PING )
-			.addType( MessageType.ERROR )
-			.addType( MessageType.NICKCHANGE )
-			.or()
-			.addCode( MessageCode.RPL_WELCOME )
-			.addCommand( "ERROR" )	
-		;
-
 		//initiatite registration
 		register();
 
