@@ -349,7 +349,10 @@ public class Connection {
 		//send the nick command...	
 		send(p, "NICK", nick);
 
-		this.defaultNick = nick;
+		//@TODO this is a slight problem as we should only set it it when we get the response
+		//but registration doesn't return the response. AH, I see
+		//I had removed this and made it set the default, but the nick in use code also calls this..
+		this.nick = nick;
 
 		//@TODO monitor for failed nick changes.
 		//only set the nick on a successful reply..
@@ -430,6 +433,10 @@ public class Connection {
 
 	public String nick() {
 		return this.nick;
+	}
+
+	public String defaultNick() {
+		return this.defaultNick;
 	}
 
 	public void quit() {
