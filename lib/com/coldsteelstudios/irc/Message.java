@@ -27,6 +27,7 @@ public class Message implements Comparable<Message> {
 
 	Message() {
 		time = System.nanoTime();
+		priority = Priority.MEDIUM;
 	}
 
 	/** 

@@ -195,17 +195,6 @@ public class Connection {
 		state = State.DISCONNECTED;
 		
 		events = new EventManager(this);
-
-		addMessageHandler(this.internalHandler)
-			.addType( MessageType.PING )
-			.addType( MessageType.ERROR )
-			.addType( MessageType.NICKCHANGE )
-		;
-		addMessageHandler(this.internalHandler)
-			.addCode( MessageCode.RPL_WELCOME )
-			.addCommand( "ERROR" )	
-		;
-
 	}
 	
 	/**
@@ -341,13 +330,12 @@ public class Connection {
 	public void nick(String nick) {
 		nick(nick, Priority.MEDIUM);
 	}
-
 	/**
 	 * Issue the nick command...
 	 */
-	public void nick(String nick, Priority p) {
+	private void nick(String nick, Priority p) {
 		//send the nick command...	
-		send(p, "NICK", nick);
+		send(p,"NICK", nick);
 
 		//@TODO this is a slight problem as we should only set it it when we get the response
 		//but registration doesn't return the response. AH, I see
@@ -390,45 +378,23 @@ public class Connection {
 	}
 
 	public void msg(String target, String msg) {
-		msg(target, msg, Priority.MEDIUM);
-	}
-
-
-	public void msg(String target, String msg, Priority p) {
-		send(p, "PRIVMSG",target, msg);
+		send("PRIVMSG",target, msg);
 	}
 
 	public void action(String target, String msg) {
-		action(target,msg,Priority.MEDIUM);
+		ctcp(target, "ACTION", msg);
 	}
 
-	public void action(String target, String msg, Priority p) {
-		ctcp(target, "ACTION", msg, p);
-	}
-
-	public void ctcp(String target, String command,String msg, Priority p) {
-		msg(target,"\u0001" + command + " " + msg + "\u0001",p);
-	}
-
-	public void ctcp(String target, String command, String msg) {
-		ctcp(target,command,msg,Priority.MEDIUM);
+	public void ctcp(String target, String command,String msg) {
+		msg(target,"\u0001" + command + " " + msg + "\u0001");
 	}
 
 	public void notice(String target, String msg) {
-		notice(target, msg, Priority.MEDIUM);
-	}
-
-	public void notice(String target, String msg, Priority p) {
-		send(p,"NOTICE" ,target, msg);
+		send("NOTICE" ,target, msg);
 	}
 
 	public void kick(String chan, String user, String msg) {
-		send(Priority.MEDIUM,"KICK", chan, user, msg);
-	}
-
-	public void kick(String chan, String user, String msg, Priority p) {
-		send(p,"KICK", chan, user, msg);
-
+		send("KICK", chan, user, msg);
 	}
 
 	public String nick() {
@@ -469,7 +435,7 @@ public class Connection {
 	 * Below... about 50 varieties of send....
 	 */
 
-	public void send(String[] args, Priority p) {
+	private void send(String[] args, Priority p) {
 
 		if (args.length == 0) return;
 
@@ -480,7 +446,7 @@ public class Connection {
 		send(buf.toString(), p);
 	}
 
-	public void send(Priority p, String... args) {
+	private void send(Priority p, String... args) {
 		send(args,p);
 	}
 
@@ -493,7 +459,7 @@ public class Connection {
 		send(msg, Priority.MEDIUM);
 	}
 
-	public void send(String msg, Priority p) {
+	private void send(String msg, Priority p) {
 		sendRaw(msg,p);
 	}
 
@@ -531,56 +497,48 @@ public class Connection {
 		return events.register(handler);
 	}
 
-	
-	//handler for some internal stuff.
-	private MessageHandler internalHandler = new MessageHandler() {
+	public void handle(Message msg) {
 
+		if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
+			setState(State.REGISTERED);
 
-		public void handle(MessageEvent e) {
+			hostname = msg.getSource().getHost();
 
-			Message msg = e.getMessage();
+		} else if ( msg.getType() == MessageType.PING ) {
+			send( Priority.CRITICAL, "PONG", msg.getMessage() );
 
-			if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
-				setState(State.REGISTERED);
+		} else if ( msg.getCommand().equals("ERROR") ) {
+			conn.close();
 
-				hostname = msg.getSource().getHost();
+		//@TODO huge mess
+		//	-handle erroneous nickname by choosing a random one.
+		//	-nick collision won't happen during registration.
+		//	-handle collision the same as in use.
+		} else if ( state == State.CONNECTED &&
+				(
+				 /*msg.getCode() == MessageCode.ERR_ERRONEUSNICKNAME ||*/
+					msg.getCode() == MessageCode.ERR_NICKNAMEINUSE ||
+					msg.getCode() == MessageCode.ERR_NICKCOLLISION 
+				)
+		) {
+			//I'm ASSUMING that all of these replies have the same format.
+			//server 433 * nick :reason
+			String bad = msg.getArg(2);
 
-			} else if ( msg.getType() == MessageType.PING ) {
-				send( Priority.CRITICAL, "PONG", msg.getMessage() );
+			//if I'm right about all of this, it should keep tacking on a _ until it
+			//doesn't get a bad response...
+			nick(bad+"_", Priority.HIGH);
 
-			} else if ( msg.getCommand().equals("ERROR") ) {
-				conn.close();
+			//connected, but not registered...
+			//In this case (99% sure), there will only be a 433, and no nick reply confirming the change.
+			//(GOD irc is annoying)
+			nick = bad+ "_";
 
-			//@TODO huge mess
-			//	-handle erroneous nickname by choosing a random one.
-			//	-nick collision won't happen during registration.
-			//	-handle collision the same as in use.
-			} else if ( state == State.CONNECTED &&
-					(
-					 /*msg.getCode() == MessageCode.ERR_ERRONEUSNICKNAME ||*/
-						msg.getCode() == MessageCode.ERR_NICKNAMEINUSE ||
-						msg.getCode() == MessageCode.ERR_NICKCOLLISION 
-					)
-			) {
-				//I'm ASSUMING that all of these replies have the same format.
-				//server 433 * nick :reason
-				String bad = msg.getArg(2);
-
-				//if I'm right about all of this, it should keep tacking on a _ until it
-				//doesn't get a bad response...
-				nick(bad+"_", Priority.HIGH);
-
-				//connected, but not registered...
-				//In this case (99% sure), there will only be a 433, and no nick reply confirming the change.
-				//(GOD irc is annoying)
-				nick = bad+ "_";
-
-			//nick reply indicating that I changed my nick...
-			} else if ( msg.getType() == MessageType.NICKCHANGE && msg.getSource().getNick().equals(nick) ) {
+		//nick reply indicating that I changed my nick...
+		} else if ( msg.getType() == MessageType.NICKCHANGE && msg.getSource().getNick().equals(nick) ) {
 				nick = msg.getTarget().getNick();
-			}
 		}
-	};
+	}
 
 	//message handler thread
 	private class Worker implements Runnable {
@@ -602,8 +560,6 @@ public class Connection {
 				else if ( ((System.currentTimeMillis() - last_tx > MAX_IDLE/2) || (System.currentTimeMillis() - last_rx) > MAX_IDLE/2) ) 
 					ping();
 
-
-
 				Message msg = null;
 
 				try {
@@ -614,7 +570,8 @@ public class Connection {
 
 				//nothing to do
 				if (msg == null) continue;
-
+				
+				handle(msg);
 				events.dispatch(msg);
 			}
 			

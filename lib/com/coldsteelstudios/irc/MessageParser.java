@@ -100,8 +100,6 @@ class MessageParser {
 
 		MessageType type;
 
-		Priority priority = Priority.MEDIUM;
-
 		if ( code != null )
 			type = code.getType();
 
@@ -121,7 +119,6 @@ class MessageParser {
 
 					} else {
 						type = MessageType.CTCP;
-						priority = Priority.LOW;
 					}
 		
 				} else if ( command.equals("NOTICE") ) {
@@ -133,7 +130,6 @@ class MessageParser {
 
 			else if ( command.equals("JOIN") ) {
 				type = MessageType.JOIN;
-				priority = Priority.HIGH;
 			}
 
 			else if ( command.equals("TOPIC") )
@@ -160,7 +156,6 @@ class MessageParser {
 
 			else if ( command.equals("PING") ) {
 				type = MessageType.PING;
-				priority = Priority.CRITICAL;
 			}
 
 			else if ( command.equals("MODE") ) {
@@ -176,13 +171,6 @@ class MessageParser {
 				type = MessageType.UNKNOWN;
 		}
 
-		if ( type == MessageType.ERROR )
-			priority = Priority.HIGH;
-
-		else if ( type ==  MessageType.UNKNOWN )
-			priority = Priority.LOW;
-
-		message.setPriority(priority);
 		message.setType(type);
 
 		return message;

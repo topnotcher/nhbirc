@@ -102,7 +102,7 @@ public class SyncManager implements MessageHandler {
 				//is incredibly difficult as different servers
 				//support different modes. This is the most reliable way
 				//to keep the user list synched (well as far as the ops go)
-				e.getSource().send(Priority.LOW, "NAMES" , m.getTarget().getChannel());
+				e.getSource().send("NAMES" , m.getTarget().getChannel());
 				break;
 
 			default:
