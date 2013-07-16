@@ -4,6 +4,9 @@ import java.util.Set;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import java.util.LinkedList;
+import java.util.ListIterator;
+
 class EventManager {
 	/**
 	 * Subscribed message handlers
@@ -12,10 +15,14 @@ class EventManager {
 	
 	protected Connection irc;
 	
+	private ListIterator<MessageSubscription> it;
+
 	public EventManager(Connection irc) {
 		this.irc = irc;
-		//subs = java.util.Collections.synchronizedList( new LinkedList<MessageSubscription>());
-		subs = new com.coldsteelstudios.util.LinkedList<MessageSubscription>();
+		subs = java.util.Collections.synchronizedList( new LinkedList<MessageSubscription>());
+		//subs = new com.coldsteelstudios.util.LinkedList<MessageSubscription>();
+	
+		it = subs.listIterator();
 	}
 
 	public MessageSubscription register(MessageHandler handler) {
@@ -23,7 +30,7 @@ class EventManager {
 	}
 
 	public MessageSubscription register(MessageSubscription sub) {
-		subs.add(sub);
+		it.add(sub);
 		return sub;
 	}
 
@@ -39,8 +46,15 @@ class EventManager {
 
 	//tests if this subscription matches, calls the irc.handlers handle if it does.
 	public void dispatch(Message msg) {
-		for ( MessageSubscription sub : subs ) try {
-			dispatch(sub,msg);
+		
+		//this hopefully prevents a concurrent modification exception
+		//(this is why I did all modification through the iterator)
+		synchronized(this) {
+			it = subs.listIterator();
+		}
+
+		while ( it.hasNext() ) try {
+			dispatch(it.next(),msg);
 		} catch (Exception e) {
 			//@TODO
 			e.printStackTrace();
