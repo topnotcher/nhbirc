@@ -8,11 +8,11 @@ public class MessageEvent {
 
 	private Message msg;
 	private Connection irc;
-	private MessageSubscription sub;
+	private EventManager  man;
 
-	MessageEvent(Connection irc, MessageSubscription sub, Message msg) {
+	MessageEvent(Connection irc, Message msg) {
 		this.irc = irc;
-		this.sub = sub;
+		this.man = man;
 		this.msg = msg;
 	}
 
@@ -22,12 +22,5 @@ public class MessageEvent {
 
 	public Message getMessage() {
 		return msg;
-	}
-
-	/**
-	 * Unregister the handler that that received this event.
-	 */
-	public void unregister() {
-		sub.unregister();
 	}
 }

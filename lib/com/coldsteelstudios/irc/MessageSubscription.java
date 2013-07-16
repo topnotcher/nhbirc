@@ -18,12 +18,9 @@ public class MessageSubscription {
 	private List<Pattern> patterns = null;
 
 	private MessageHandler handler;
-		
-	private Connection irc;
 
-	public MessageSubscription(MessageHandler handler, Connection irc) {
+	public MessageSubscription(MessageHandler handler ) {
 		this.handler = handler;
-		this.irc = irc;
 	}
 
 	/**
@@ -82,95 +79,23 @@ public class MessageSubscription {
 		return this;
 	}
 
-	/**
-	 * Register this subscription
-	 */
-	public MessageSubscription register() {
-		synchronized(irc.handlers) {
-			irc.handlers.add(this);
-		}
-		return this;
+	public MessageHandler getHandler() {
+		return handler;
 	}
 
-	/**
-	 * kill this subscription
-	 */
-	public void unregister() {
-		synchronized(irc.handlers) {
-			irc.handlers.remove(this);
-		}
+	List<Pattern> getPatterns() {
+		return patterns;
 	}
 
-	/**
-	 * add an "or" condition. Really just creates a new subscription.
-	 */
-	public MessageSubscription or() {
-		return (new MessageSubscription(this.handler,irc)).register();
+	List<String> getCommands() {
+		return cmds;
 	}
 
-	//tests if this subscription matches, calls the irc.handlers handle if it does.
-	public void handle(Message msg) {
+	Set<MessageCode> getCodes() {
+		return codes;
+	}
 
-		//Type must ALWAYS match...
-		//msg.getType() should NEVER return null.
-		if ( this.types != null && !types.contains( msg.getType() ) )
-			return;
-
-
-		boolean match = false;
-		boolean cmdMatch = false;
-		boolean codeMatch = false;
-		
-		if ( codes != null && msg.getCode() != null && codes.contains( msg.getCode() ) )
-			codeMatch = true;
-	
-		if ( cmds != null ) {
-			for (String cmd : cmds) {
-				if ( cmd.equals(msg.getCommand()) ) {
-					cmdMatch = true;
-					break;
-				}
-			}
-		}
-
-		//case 1: no commands or codes to match = match 
-		if ( this.cmds == null && this.codes == null ) {
-			match = true;
-
-		//there are codes to match, so the codes
-		} else if ( this.cmds == null ) {
-			match = codeMatch;
-
-		//likewise, but commands
-		} else if ( this.codes == null ) {
-			match = cmdMatch;
-
-		//BOTH are non null. 
-		} else {
-			match = (cmdMatch||codeMatch);
-		}
-
-		//if we didn't find a command or code match...
-		if ( !match ) 
-			return;
-
-		//Patterns must always match....
-		if ( this.patterns != null ) {
-			boolean found = false;
-
-			for (Pattern p : patterns) {
-				if ( p.matcher( msg.getMessage() ).matches() ) {
-					found = true;
-					break;
-				}
-			}
-
-			if (!found) return;
-		}
-
-		//if we haven't returne by this point, the message must be a match...
-		//@TODO consider creating one event each time a handler matches? 
-		//this is a bit redundant.
-		handler.handle(new MessageEvent(irc, this, msg));
+	Set<MessageType> getTypes() {
+		return types;
 	}
 }
