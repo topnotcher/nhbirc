@@ -122,7 +122,7 @@ public class Connection {
 	/**
 	 * Subscribed message handlers
 	 */
-	private List<IrcMessageSubscription> handlers;
+	List<MessageSubscription> handlers;
 	
 	/**
 	 * Tracks the state of the connection.
@@ -194,8 +194,8 @@ public class Connection {
 
 		state = State.DISCONNECTED;
 
-		//handlers = java.util.Collections.synchronizedList( new LinkedList<IrcMessageSubscription>());
-		handlers = new com.coldsteelstudios.util.LinkedList<IrcMessageSubscription>();
+		//handlers = java.util.Collections.synchronizedList( new LinkedList<MessageSubscription>());
+		handlers = new com.coldsteelstudios.util.LinkedList<MessageSubscription>();
 
 		addMessageHandler(this.internalHandler)
 			.addType( MessageType.PING )
@@ -524,176 +524,13 @@ public class Connection {
 	 *       The MessageHandler guarantess that handlers are called in the order
 	 *       in which they were registered.
 	 *
-	 * @see IrcMessageSubscription
+	 * @see MessageSubscription
 	 * @return Provides a fluent interface...
 	 */
-	public IrcMessageSubscription addMessageHandler(MessageHandler handler) {
-		return (new IrcMessageSubscription(handler)).register(); 
+	public MessageSubscription addMessageHandler(MessageHandler handler) {
+		return (new MessageSubscription(handler,this)).register(); 
 	}
 
-	//a subscription to irc messages
-	public class IrcMessageSubscription {
-			
-		private Set<MessageType> types = null;
-		private Set<MessageCode> codes = null;
-
-		private List<String> cmds = null;
-		private List<Pattern> patterns = null;
-
-		private MessageHandler handler;
-			
-		private IrcMessageSubscription(MessageHandler handler) {
-			this.handler = handler;
-		}
-
-		/**
-		 * Add a type to the subscription
-		 * @return provides a fluent interface
-		 */
-		public IrcMessageSubscription addType(MessageType type) {
-			
-			if  ( types == null ) 
-				types = new TreeSet<MessageType>();
-
-			types.add(type);
-
-			return this;
-		}
-
-		/**
-		 * Add a code to the subscription
-		 * @return provides a fluent interface
-		 */
-		public IrcMessageSubscription addCode(MessageCode code) {
-
-			if  ( codes == null ) 
-				codes = new TreeSet<MessageCode>();
-
-			codes.add(code);
-
-			return this;
-		}
-
-		/**
-		 * Add a command. THe command and the code are an OR match. Everything else is and.
-		 * 
-		 * @return provides a fluent interface.
-		 */
-		public IrcMessageSubscription addCommand(String cmd) {
-			
-			if ( cmds == null ) 
-				cmds = new LinkedList<String>();
-
-			cmds.add(cmd);
-
-			return this;
-		}
-
-		/**
-		 * Add a regex to match on the 'message' part.
-		 */
-		public IrcMessageSubscription addPattern(Pattern p) {
-			
-			if ( patterns == null )
-				patterns = new LinkedList<Pattern>();
-
-			patterns.add(p);
-
-			return this;
-		}
-
-		/**
-		 * Register this subscription
-		 */
-		private IrcMessageSubscription register() {
-			synchronized(handlers) {
-				handlers.add(this);
-			}
-			return this;
-		}
-
-		/**
-		 * kill this subscription
-		 */
-		public void unregister() {
-			synchronized(handlers) {
-				handlers.remove(this);
-			}
-		}
-
-		/**
-		 * add an "or" condition. Really just creates a new subscription.
-		 */
-		public IrcMessageSubscription or() {
-			return (new IrcMessageSubscription(this.handler)).register();
-		}
-
-		//tests if this subscription matches, calls the handlers handle if it does.
-		private void handle(Message msg) {
-
-			//Type must ALWAYS match...
-			//msg.getType() should NEVER return null.
-			if ( this.types != null && !types.contains( msg.getType() ) )
-				return;
-
-
-			boolean match = false;
-			boolean cmdMatch = false;
-			boolean codeMatch = false;
-			
-			if ( codes != null && msg.getCode() != null && codes.contains( msg.getCode() ) )
-				codeMatch = true;
-		
-			if ( cmds != null ) {
-				for (String cmd : cmds) {
-					if ( cmd.equals(msg.getCommand()) ) {
-						cmdMatch = true;
-						break;
-					}
-				}
-			}
-
-			//case 1: no commands or codes to match = match 
-			if ( this.cmds == null && this.codes == null ) {
-				match = true;
-
-			//there are codes to match, so the codes
-			} else if ( this.cmds == null ) {
-				match = codeMatch;
-
-			//likewise, but commands
-			} else if ( this.codes == null ) {
-				match = cmdMatch;
-
-			//BOTH are non null. 
-			} else {
-				match = (cmdMatch||codeMatch);
-			}
-
-			//if we didn't find a command or code match...
-			if ( !match ) 
-				return;
-
-			//Patterns must always match....
-			if ( this.patterns != null ) {
-				boolean found = false;
-
-				for (Pattern p : patterns) {
-					if ( p.matcher( msg.getMessage() ).matches() ) {
-						found = true;
-						break;
-					}
-				}
-
-				if (!found) return;
-			}
-
-			//if we haven't returne by this point, the message must be a match...
-			//@TODO consider creating one event each time a handler matches? 
-			//this is a bit redundant.
-			handler.handle(new MessageEvent(getConnection(), this, msg));
-		}
-	}
 	
 	//handler for some internal stuff.
 	private MessageHandler internalHandler = new MessageHandler() {
@@ -778,7 +615,7 @@ public class Connection {
 				//nothing to do
 				if (msg == null) continue;
 
-				Iterator<IrcMessageSubscription> it = handlers.iterator();
+				Iterator<MessageSubscription> it = handlers.iterator();
 					
 				while (it.hasNext()) try {
 					it.next().handle( msg );

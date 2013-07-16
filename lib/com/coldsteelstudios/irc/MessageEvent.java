@@ -8,9 +8,9 @@ public class MessageEvent {
 
 	private Message msg;
 	private Connection irc;
-	private Connection.IrcMessageSubscription sub;
+	private MessageSubscription sub;
 
-	MessageEvent(Connection irc, Connection.IrcMessageSubscription sub, Message msg) {
+	MessageEvent(Connection irc, MessageSubscription sub, Message msg) {
 		this.irc = irc;
 		this.sub = sub;
 		this.msg = msg;
