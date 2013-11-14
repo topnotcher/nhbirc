@@ -84,7 +84,6 @@ class MessageParser {
 
 
 		//if the message is FROM a nick... and that nick is the nick for the current connection
-		//@TODO lowercase {}|[]\
 		if ( message.getSource().scope( MessageTarget.Scope.NICK ) &&  message.getSource().getNick().toLowerCase().equals(irc.nick().toLowerCase()))
 			message.setFromMe(true);
 

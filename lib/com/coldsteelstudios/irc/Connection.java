@@ -105,19 +105,9 @@ public class Connection {
 	private String pass = null;
 
 	/**
-	 * Priority Queue of outgoing messages.
-	 */
-	private BlockingQueue<OutgoingMessage> sendQ;
-	
-	/**
-	 * Priority Queue of Incoming messages.
-	 */
-	private BlockingQueue<Message> recvQ;
-
-	/**
 	 * The object that handles the actual socket i/o
 	 */
-	private IrcConnection conn;
+	private Connection conn;
 
 	/**
 	 * Tracks the state of the connection.
@@ -134,22 +124,6 @@ public class Connection {
 	 * The hostname the server gave as the origin in the 001 reply.
 	 */
 	private String hostname = "none";
-
-	/**
-	 * The time (unix epoch) in milliseconds of the last message sent to the server.
-	 */
-	private long last_tx = 0;
-
-	/**
-	 * The time (unix epoch) in milliseconds of the last message received from to the server.
-	 */
-
-	private long last_rx = 0;
-
-	/**
-	 * The time (unix epoch) in milliseconds of the last ping sent to the server.
-	 */
-	private long last_ping = 0;
 
 	/**
 	 * Create a Connection with a default ident and realname.
@@ -308,34 +282,20 @@ public class Connection {
 		//All the commands in this method must go through sendRaw.
 
 		//command order per RFC2812
-
 		if ( pass != null )
 			send("PASS",pass);
 		
-
+		//@TODO
 		send("NICK", defaultNick);
 		send("USER" ,user, "0", "*", real);
 	}
 
-	private void ping() {
-
-		if ( System.currentTimeMillis() - last_ping <= PING_TIMEOUT )
-			return;
-
-		last_ping = System.currentTimeMillis();
-			
-		send(Priority.CRITICAL, "PING", hostname);
-	}
-
-	public void nick(String nick) {
-		nick(nick, Priority.MEDIUM);
-	}
 	/**
 	 * Issue the nick command...
 	 */
-	private void nick(String nick, Priority p) {
+	public void nick(String nick) {
 		//send the nick command...	
-		send(p,"NICK", nick);
+		send("NICK", nick);
 
 		//@TODO this is a slight problem as we should only set it it when we get the response
 		//but registration doesn't return the response. AH, I see
@@ -417,19 +377,6 @@ public class Connection {
 	 * End IRC helper methods.
 	 */
 
-	//handle a raw received message
-	private void handleRaw(String raw) {
-		if (raw.length() == 0) return;
-	
-		try {
-			recvQ.offer( MessageParser.parse( this, raw ) );
-
-		//probably best if incoming messages can't kill the client.
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-	}
 
 	/**
 	 * Below... about 50 varieties of send....
@@ -469,14 +416,7 @@ public class Connection {
 
 	private void sendRaw(String cmd, Priority p) {
 
-		if ( state == state.DISCONNECTED ) 
-			//@TODO
-			throw new RuntimeException("Trying to execute commands in a disconnected state...?");
-
-		//@TODO error checking
-		//offer returns bool.
-		if (!sendQ.offer( new OutgoingMessage(cmd,p) ))
-			throw new RuntimeException("Failed to queue message: " + cmd);
+		@TODO
 	}
 
 
@@ -501,15 +441,9 @@ public class Connection {
 
 		if ( msg.getCode() == MessageCode.RPL_WELCOME ) {
 			setState(State.REGISTERED);
-
 			hostname = msg.getSource().getHost();
-
-		} else if ( msg.getType() == MessageType.PING ) {
-			send( Priority.CRITICAL, "PONG", msg.getMessage() );
-
-		} else if ( msg.getCommand().equals("ERROR") ) {
-			conn.close();
-
+		}
+		
 		//@TODO huge mess
 		//	-handle erroneous nickname by choosing a random one.
 		//	-nick collision won't happen during registration.
@@ -527,7 +461,7 @@ public class Connection {
 
 			//if I'm right about all of this, it should keep tacking on a _ until it
 			//doesn't get a bad response...
-			nick(bad+"_", Priority.HIGH);
+			nick(bad+"_");
 
 			//connected, but not registered...
 			//In this case (99% sure), there will only be a 433, and no nick reply confirming the change.
@@ -550,8 +484,9 @@ public class Connection {
 
 				long rx_time = System.currentTimeMillis() - last_rx;
 				long ping_time = System.currentTimeMillis() - last_ping;
+
 				//ping timeout
-				if ( (rx_time > MAX_IDLE) || (rx_time > PING_TIMEOUT && ping_time >= PING_TIMEOUT/2 && ping_time < 2*PING_TIMEOUT ) ) { 
+				if ( (rx_time > MAX_IDLE) || (rx_time > PING_TIMEOUT && ping_time >= PING_TIMEOUT/2 && ping_time < 2*PING_TIMEOUT ) ) {
 					System.err.println("PING TIMEOUT");
 					conn.close();
 				}
@@ -574,168 +509,7 @@ public class Connection {
 				handle(msg);
 				events.dispatch(msg);
 			}
-			
-			//This is a not very nice hack.
-			//Also note that this doesn't allow us to quit!
-			autoreconnect();
 			return;
-		}
-	}
-
-	private static class OutgoingMessage implements Comparable<OutgoingMessage> {
-		
-		Priority priority;
-		String msg;
-
-		private OutgoingMessage(String msg) {
-			this(msg,Priority.MEDIUM);
-		}
-
-		private OutgoingMessage(String msg, Priority priority) {
-			this.priority = priority;
-			this.msg = msg;
-		}
-
-		public String getMessage() {
-			return msg;
-		}
-
-		public int compareTo( OutgoingMessage msg ) {
-			return this.priority.getValue() - msg.priority.getValue();
-		}
-	}
-	//connection thread
-	private class IrcConnection {
-
-		//per RFC, max size of irc message...
-		private static final int MSG_SIZE = 512;
-
-		private Socket conn = null;
-
-		private PrintWriter out;
-
-		private BufferedReader in;
-
-		private IrcConnection() throws java.io.IOException {
-
-			conn = new java.net.Socket(host,port);
-
-			out = new PrintWriter( conn.getOutputStream(), false );
-			in = new BufferedReader( new InputStreamReader( conn.getInputStream() ) );
-
-			last_tx = last_rx = System.currentTimeMillis();
-
-			//will replace these with own implementation of queue/prioirty queue later.
-			sendQ = new PriorityBlockingQueue<OutgoingMessage>();
-			recvQ = new PriorityBlockingQueue<Message>();
-
-			//setting state = connected starts all the fun loops..
-			setState(state.CONNECTED);
-		
-			(new Thread( readerThread, "Socket Read" )).start();
-			(new Thread( writerThread, "Socket Write" )).start();
-		}
-
-		private Runnable readerThread = new Runnable() {
-
-			/**
-			 * @TODO exception handling
-			 */
-			public void run() {
-			
-				if ( state == State.DISCONNECTED ) 
-					throw new ConnectionStateException("Trying to run wihout being connected???");
-	
-				while ( state != State.DISCONNECTED ) try {	
-					/**
-					 * NOTE: this *should* work.  
-					 * Not 100% sure in the case of CTCPS
-					 * I believe CR/LF characters must be quoted in in a CTCP (by the server, presumably),
-					 * but in any case, this should be changed to a character-by-character read for two reasons:
-					 *
-					 * (1) enforce the MSG_SIZE
-					 * (2) An unquoted embedded CR\LF inside a CTCP would cause the message to be split into two
-					 * 	thus allowing message injection. Probably not a good idea to rely on the server to do the quoting...
-					 */
-					recv( in.readLine() );
-		
-				} catch (java.io.IOException e) {
-					e.printStackTrace();
-					close();
-				}
-			}
-		};
-
-		private Runnable writerThread = new Runnable() {
-
-			/**
-			 * @TODO exception handling
-			 */
-			public void run() {
-			
-				if ( state == State.DISCONNECTED ) 
-					throw new ConnectionStateException("Trying to run wihout being connected???");
-
-	
-				while( state != State.DISCONNECTED ) try {
-					sendMsg( sendQ.poll(5, java.util.concurrent.TimeUnit.MILLISECONDS) );
-				} catch (InterruptedException e) {
-				}
-			}
-		};
-
-		private void sendMsg(OutgoingMessage msg) {
-
-			if (msg == null) return;
-
-			//connection could have died while waiting for something
-			//to be put onto the outgoing queue.
-			if (state == State.DISCONNECTED) return;
-
-			last_tx = System.currentTimeMillis();
-
-			try { 
-				out.print( msg.getMessage() );
-				out.print( "\r\n" );
-			//	conn.setSendBufferSize(msg.getMessage().length()+2);
-				out.flush();
-			} catch (Exception e) {
-//				e.printStackTrace();
-				close();
-			}
-		}
-
-		/**
-		 * Receives/buffers any data on the channel
-		 */
-		private void recv(String msg) {
-
-			if (msg == null) return;
-
-			//in case the connection died/was killed while waiting to read 
-			//(which doesn't make sense...)
-			if (state == State.DISCONNECTED) return;
-
-			last_rx = System.currentTimeMillis();
-
-			handleRaw(msg);
-		}
-
-		public void close() {
-			//stop everything from looping
-			setState(State.DISCONNECTED);
-			
-			sendQ.clear();
-
-			try {
-				conn.close();
-			} catch (Exception e) {
-				//not really anyhing we CAN do...
-			}
-		}
-
-		protected void finalize() {
-			close();
 		}
 	}
 }
